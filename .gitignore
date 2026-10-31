@@ -1,0 +1,56 @@
+# Datasets and captures: never committed or redistributed (DATASET_SELECTION §6)
+# Anchored with a leading slash, because a bare data/ would also match docs/data/
+/data/*
+!/data/SOURCES.md
+!/data/MANIFEST.sha256
+*.pcap
+*.pcapng
+*.cap
+*.pcap.gz
+*.pcapng.gz
+*.parquet
+
+# Credentials
+.env
+.env.*
+!.env.example
+kaggle.json
+*.pem
+*.key
+*.p12
+*.pfx
+mosquitto.passwd
+passwd
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Node and dashboard build output
+node_modules/
+dist/
+
+# Generated artefacts
+# results/ stays tracked for small JSON/CSV files (DATA_FLOW §4), but not model binaries or stores
+results/**/*.joblib
+*.joblib
+*.sqlite
+*.sqlite3
+*.db
+*.log
+
+# Temporary and local files
+*.tmp
+*.part
+*.bak
+~$*
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+.claude/settings.local.json
