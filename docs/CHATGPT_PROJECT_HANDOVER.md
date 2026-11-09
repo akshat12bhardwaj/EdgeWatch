@@ -1,7 +1,7 @@
 # Project Handover for an AI Assistant
 
 **Project:** *How Lightweight Is Lightweight? End-to-End, Leakage-Controlled Evaluation of MQTT Intrusion Detection on an Edge Gateway* (demo product: **Edge Watch**).
-**Prepared:** 2026-10-31, from all 44 documents in `docs/`, baseline v0.1 (2026-10-20), commit `bd8c85d`. Findings `F-xx` are explained in `docs/DOCUMENTATION_AUDIT.md`, and the important ones are repeated here.
+**Prepared:** 2026-10-31, from all 44 documents in `docs/`, baseline v0.1 (2026-10-20), commit `bd8c85d`. Findings `F-xx` are explained in `docs/DOCUMENTATION_AUDIT.md`, and the important ones are repeated here. **Updated the same day with measured D-01 evidence (§2, §8, §18).**
 
 ## How to use this document
 
@@ -18,7 +18,7 @@ You are helping six university students continue this project. This document is 
 
 Literature evidence tags: **[R]** reported by the authors · **[I]** the team's interpretation · **[U]** unverified, from a secondary source or metadata.
 
-**There are no results.** Every number below is either from the literature, a design target, a proposal, or a placeholder.
+**There are no model or experiment results.** Every number below is from the literature, a design target, a proposal, or a placeholder, except the D-01 data inspection figures in §8, which are measured from dataset files.
 
 ## 1. Project identity and objective
 
@@ -50,9 +50,11 @@ Literature evidence tags: **[R]** reported by the authors · **[I]** the team's 
 | Item | Status |
 |---|---|
 | Research and design documents | Baseline v0.1, **pending team approval** (DEC-01) |
-| Implementation, experiments, dataset downloads | **None (VERIFIED)**. Only documents and `.gitattributes` exist |
+| Implementation, experiments, model training | Only the shared feature extractor core exists (`src/ids/features.py`, with synthetic tests; not yet run on real traffic). **No capture, models, lab, dashboard, or experiments** |
+| Dataset files | All 6 MQTTset PCAPs and 3 reference files are on the coordinating laptop, outside Git and OneDrive. No other dataset is downloaded |
 | Tools | `tshark`, `mosquitto`, `docker` not on PATH (VERIFIED). Setup guide not executed |
-| Git | One commit, no remote. Documents still say "not a Git repository" (outdated). **No `.gitignore` yet** |
+| Git | Branch `docs/phase-00-baseline`, with commit `4be5493` (handover, audit, `.gitignore`) and later uncommitted documentation edits; no remote. Older documents still say "not a Git repository" (outdated) |
+| D-01 | **Open.** Raw-PCAP availability measured; dataset suitability inconclusive (§8). Option B proposed, **not approved** |
 | Current gate | M0 not recorded as complete; M1 is the next major gate |
 | All 12 ADRs | PROPOSED |
 | Deadlines | UNKNOWN (Q-05). Never invent dates |
@@ -271,7 +273,7 @@ flowchart LR
 
 - **Passive, no blocking (ADR-02).** Inline blocking adds availability and safety risks outside the research question. An inline proxy adds data-plane latency and a single point of failure; a broker plugin couples to Mosquitto and cannot see TCP behaviour. Cost: it cannot stop attacks, and that is stated openly. Also, the IDS service can be disabled while the broker keeps running.
 - **One extractor for training and live inference (ADR-03).** Otherwise a model is measured on features it never trained on (train/serve skew). A parity test demands identical rows from the offline and streaming paths.
-- **Re-extract from raw PCAP (ADR-03).** Dataset CSVs have incompatible definitions, and cannot be computed live. MQTTset's CSV dropped IPs and time, so windows cannot be built from it. P32 and P31 motivate common, re-derived features. Consequence: numbers are not directly comparable with papers, which is intentional. E1-a provides a sanity anchor.
+- **Re-extract from raw PCAP (ADR-03).** Dataset CSVs have incompatible definitions, and cannot be computed live. MQTTset's combined CSV drops IPs and absolute times (per the inspected script and P08; CSV not opened), so windows cannot be built from it (F-55). P32 and P31 motivate common, re-derived features. Consequence: numbers are not directly comparable with papers, which is intentional. E1-a provides a sanity anchor.
 - **Prevent session and temporal leakage.** Adjacent windows are near-duplicates and sessions share behaviour, so random splits place near-copies in train and test. That is the very inflation under study, so the evaluation must not commit it.
 - **Plaintext primary (ADR-08).** Under TLS a passive observer loses all `mqtt.*` fields. Results apply to plaintext or TLS-terminating gateways, and this is stated in results.
 
@@ -295,7 +297,7 @@ All PROPOSED; final selection is pending D-01 to D-04.
 
 | Dataset | MQTT attacks | PCAP | Role in train / validate / test | Status |
 |---|---|---|---|---|
-| **MQTTset** (P08) | Flood, DoS (MQTT-malaria), SlowITe, malformed, brute force [R]. Simulated smart home, Mosquitto 1.6.2, one week, broker-side | **UNRESOLVED, D-01** | **Primary.** E1 train/val/test, S-cross both directions. E1-a anchor | Depends on D-01 |
+| **MQTTset** (P08) | Flood, DoS (MQTT-malaria), SlowITe, malformed, brute force [R]. Simulated smart home, Mosquitto 1.6.2, one week, broker-side | **Present in all 6 files (measured); D-01 Open** | **Primary.** E1 train/val/test, S-cross both directions. E1-a anchor | Depends on D-01 |
 | **MQTT-IoT-IDS2020** (P09) | MQTT brute force only (+ scans, SSH brute force, excluded) [R] | Yes [R] | **Secondary.** E1 train/val/test; brute-force cross test; D-01 fallback primary | PROPOSED |
 | **CICIoMT2024** (P22) | Malformed; DoS/DDoS connect flood; DoS/DDoS publish flood [R]. Independent lineage | Yes [R] | **Cross-dataset target** for E2 (both directions). Not in the E1 design | Licence D-04; IP anonymisation unchecked (F-27) |
 | **Isolated lab** | T1–T5 scripted; T6 rule only; benign scenarios | Yes, generated | E3, E4, E5, E7, demo; S-episode. **Never in RQ1 training.** A separate "lab-trained" condition is mentioned but has no experiment ID (F-10) | PROPOSED |
@@ -322,7 +324,7 @@ All PROPOSED; final selection is pending D-01 to D-04.
 
 **Question (DECISIONS.md):** does MQTTset include raw PCAPs with IPs and timestamps? **Status: open, UNRESOLVED. Owner S2.** The documents also tie to it whether MQTTset has multiple episodes per class.
 
-**Why it is critical:** ADR-03 needs PCAPs for the common extractor. The CSV has dropped IPs and time, so windows keyed by source cannot be built from it.
+**Why it is critical:** ADR-03 needs PCAPs for the common extractor. The combined CSV drops IPs and absolute times (per the inspected script and P08), so windows keyed by source cannot be built from it.
 
 **Documented path if the answer is no:** contact the authors (CNR-IEIIT), or make MQTT-IoT-IDS2020 primary alongside CICIoMT2024, and record it in DECISIONS.md. The MQTTset CSV could still serve the E1-a anchor [I].
 
@@ -334,7 +336,29 @@ All PROPOSED; final selection is pending D-01 to D-04.
 
 **Timing conflict (F-01, UNRESOLVED):** one document expects it resolved by M1, another by M2, while the protocol frozen at M1 names MQTTset.
 
-**Data handling:** raw data stays out of Git in `data/raw/`, read-only, with SHA-256 in `data/MANIFEST.sha256` and sources in `data/SOURCES.md`. Never redistribute dataset files or lab PCAPs. Keep `data/` outside OneDrive sync (D-05, recommended).
+### D-01 evidence (2026-10-31; D-01 remains Open)
+
+Details: `docs/DOCUMENTATION_AUDIT.md` §12. Reports, aggregates, and the meeting package (`team-review\`): `C:\Users\aksha_q43exq6\edgewatch-data\reports\`, outside Git, on the coordinating laptop only. **`tshark` was not used. No model was trained.**
+
+**Measured from the files:**
+- All 6 PCAPs parse completely and contain IP addresses and timestamps.
+- Durations differ from P08 for all 5 attack captures. `slowite.pcap` lasts 0.697 s, not 10 minutes. `capture_1w.pcap` is a real week.
+- Rows at W = 5 s: benign 655,535; `bruteforce` 442; `flood` 69; `malformed` 54; `lowrate` 1. S-time test rows: 131,095; 81; 9; 10; 0 (F-46).
+- **F26 is 5 or 10 in all benign rows and 1 in all attack rows.** Each attack file has one client, and no file has attack and benign traffic together.
+- `malformed.pcap` shows no framing errors or selected-rule violations (F-60).
+
+**From the author files:**
+- Labels are set per CSV file, so they are **author assignments, not verified ground truth** (F-54).
+- PCAP-to-CSV conversion is undocumented (F-55).
+- The inspected script retains `mqtt.msg` in the combined CSV, which affects E1-a (F-56). No CSV has been opened.
+- The inspected scripts have limitations, but **it is not established that they produced the published results** (F-57).
+- README and Kaggle disagree on the licence, so licence and redistribution rights are unresolved (F-58).
+
+**Unverified hypotheses:** F26 or F25 changing a model's scores; other features separating captures at window level; live-gateway F26 values; the benign file being purely benign. **Do not state that published MQTTset scores are invalid or inflated.**
+
+**Status:** raw-PCAP availability is measured; dataset suitability is **inconclusive**. Option B, the proposed response, is **not approved**.
+
+**Data handling:** raw data stays out of Git in `data/raw/`, read-only, with SHA-256 in `data/MANIFEST.sha256` and sources in `data/SOURCES.md`. Never redistribute dataset files or lab PCAPs. Keep `data/` outside OneDrive sync (D-05, recommended). The current MQTTset copy is at `C:\Users\aksha_q43exq6\edgewatch-data\raw\mqttset\`; D-05 and the final layout are still open.
 
 **Data quality (Q1–Q12, before any training, reports at `results/data_quality/<dataset>.md`):** provenance (checksums, source, licence); consistency (counts vs. papers within 1%, attacker IP, benign in attack captures, duplicates, timestamps, malformed frames); shortcuts (Q10 non-feature model above 0.9 macro-F1, Q11 single-feature depth-1 tree above 0.95, inspected manually; Q12 benign KS tests).
 
@@ -640,6 +664,8 @@ Role-based and **PROVISIONAL**. Assign names at M0, and swap roles according to 
 | F-18, F-19 | E9 sequencing; E7 status |
 | F-21, F-22 | Meaning of "replay" in E3; demo script honesty |
 | F-27 | CICIoMT2024 IP anonymisation |
+| F-46 to F-53 | Planning findings, including corrected attack-window counts (audit §11) |
+| F-54 to F-60 | Measured D-01 findings: labels, conversion, `mqtt.msg` and E1-a, scripts, licence, `lowrate`, `malformed` (audit §12) |
 
 **Proposed alternatives are separate from the plan.** Any suggestion to fix these, including those in the audit, is PROPOSED and has not been adopted. The architecture and decisions above stand until the team changes them.
 
@@ -675,15 +701,17 @@ Role-based and **PROVISIONAL**. Assign names at M0, and swap roles according to 
 Documents place these first (M0, Phase 00). Items marked **PROPOSED** come from the audit and need team agreement.
 
 1. **Team:** name S1–S6 (Q-01), obtain deadlines (Q-05), review and approve the baseline (DEC-01).
-2. **Supervisor meeting:** Q-02 hardware, Q-03 lab type, Q-04 ethics and safety, scope sign-off on the charter.
+2. **Supervisor meeting:** present `D-01_team_decision_brief.md`; cover Q-02 hardware, Q-03 lab type, Q-04 ethics and safety, scope sign-off on the charter.
 3. **Everyone:** full-text reviews of assigned papers, priority reads first.
 4. **S1:** P19 journal version first; run round-2 database search through the library; forward-citation search.
-5. **PROPOSED, S2:** answer D-01 before freezing. This needs a dataset file listing, and no project tools. Then D-02 and D-03 reading, since those are the fallback.
-6. **PROPOSED, team:** assign P23; raise the F-01 to F-13 issues in DECISIONS.md, and decide each.
-7. **PROPOSED, S6:** add `.gitignore` before any data appears; decide on a remote; record the Git decision.
-8. **Team, end of Phase 00:** approve gap and hypotheses, fix Δ and threshold target, freeze the protocol and event contract with a date.
+5. **PROPOSED, team:** review the D-01 evidence, then decide on D-01, original-label reliability (F-54), E1-a (F-56), and Option B. These rows are in `DECISIONS.md`, and none is approved.
+6. **PROPOSED, S2:** email the MQTTset authors, with the questions in audit §12 and the processing audit; resolve the licence (F-58); read D-02 and D-03, since those are the fallback.
+7. **PROPOSED, team and supervisor:** decide on a pre-M1 `tshark` exception (Q-08), so F23 and MQTT-level figures can be validated.
+8. **PROPOSED, team:** assign P23; decide the F-01 to F-13 issues in `DECISIONS.md`.
+9. **PROPOSED, S6:** share the D-01 reports with the team, because they are on one laptop outside Git; decide on a remote; record the Git decision; review and commit pending documentation edits.
+10. **Team, end of Phase 00:** approve gap and hypotheses, fix Δ and threshold target, freeze the protocol and event contract with a date.
 
-**Do not start** tool installation, code, or experiments until M1 agreement.
+**Do not start** tool installation, code, model training, or experiments until M1 agreement, except where the team records an exception.
 
 ## 19. Important document references
 
@@ -719,7 +747,7 @@ Documents place these first (M0, Phase 00). Items marked **PROPOSED** come from 
 5. Never call lab benign traffic real-world traffic.
 6. Report hypothesis rejection honestly. Never tune toward a hypothesis.
 7. Never invent names, dates, deadlines, licences, or hardware availability. Mark them UNKNOWN.
-8. Never silently resolve D-xx, Q-xx, or DEC-xx items, or renumber them. Never change a design decision without a recorded team decision.
+8. Never silently resolve D-xx, Q-xx, or DEC-xx items, or renumber them. Never change a design decision without a recorded team decision. D-01 is Open, and Option B is not approved.
 
 **Methodology**
 9. Use one shared extractor for offline and live, and re-extract from raw PCAP. Do not train the evaluated models on dataset CSVs. The only exception is the E1-a anchor.
@@ -747,5 +775,5 @@ Documents place these first (M0, Phase 00). Items marked **PROPOSED** come from 
 25. Do not add threat gauges, world maps, payload viewers, or blocked counters, however impressive they might look.
 
 **Process**
-26. Implementation has not begun, and installation needs agreement (M1, Q-08). Do not treat the project as being further along than §2 says.
+26. Implementation has only just begun (§2), and installation needs agreement (Q-08). Do not treat the project as being further along than §2 says.
 27. Team coding convention is the Ponytail rules: smallest complete change, a test for non-trivial logic, and `shortcut: <limit>, <when to upgrade>` comments for known limits. Ponytail has no token-optimisation features.

@@ -25,4 +25,10 @@ Append one line per run attempt, including failures.
 
 | Date | Exp ID | Run ID | Operator | Outcome | Notes |
 |---|---|---|---|---|---|
-| | | | | | |
+| 2026-11-09 | (E1 analogue) | ENG-R1-lab-splits | AI assistant | completed | Random vs episode vs run split on lab dev runs; **not E1** (no DQ-*, no MQTTset) |
+| 2026-11-09 | (E3/E4 analogue) | ENG-P1, ENG-P2-soak, ENG-P2-soak-v2, ENG-P3-bounds, ENG-P4-churn-memory | AI assistant | completed | Windows software gateway on the development laptop; **not the gateway pilot** |
+| 2026-11-09 | (E5 analogue) | ENG-C1-compare (benign runs), ENG-B1-* | AI assistant | completed | 3.3 h of benign lab runs incl. an unseen smart-home run; **not E5** (E1 not done) |
+| 2026-11-09 | (E6 analogue) | ENG-C1-compare | AI assistant | completed | Quality vs cost per detector, report section 11 |
+| 2026-11-09 | (E7 analogue) | ENG-P3-bounds `evidence_us_per_alert` | AI assistant | completed | Explanation cost per alert |
+| 2026-11-09 | (E9 analogue) | ENG-W1-window-size | AI assistant | see result | 1, 5, 10 s windows on lab dev runs; **not E9** |
+| 2026-11-09 | E1-a, E1, E2, E8 | — | — | not run | E1-a/E1 need D-01 and Option B; E2 needs D-04 datasets; E8 deferred by design |

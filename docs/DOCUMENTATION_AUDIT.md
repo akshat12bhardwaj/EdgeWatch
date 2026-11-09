@@ -15,6 +15,7 @@
   - The D-01 fallback leaves almost no family-level cross-dataset test (F-02).
   - H2 cannot be computed from the defined timers (F-03).
 - **M1 is not ready to be passed, and M0 is not recorded as complete.** Phase 00 reading can start now (§10).
+- **Later additions:** §11 (planning findings) and §12 (measured D-01 evidence). D-01 remains Open.
 
 ## 2. Scope and method
 
@@ -212,3 +213,144 @@ Evidence is cited as `FILE §section` or `FILE line`. Under the blueprint's own 
 | Can Phase 00 begin? | **Yes.** It has no phase dependency and needs no installation. Assignments are role-based, so names are needed first |
 | Is M1 achievable from the current documents? | **Only after protocol fixes.** F-01 to F-13 should be resolved or explicitly accepted before the protocol is frozen, because freezing locks them in |
 | Is any existing document wrong about the project's core? | **No.** The findings concern consistency and measurement detail, not the research direction |
+
+## 11. Addendum: Phase 00 planning findings (2026-10-31)
+
+**Prepared by:** Claude Code (AI assistant), for team review. **Nothing in this section is an accepted decision.** No existing finding was renumbered, and no D-xx, Q-xx, or DEC-xx status changed. The original audit is §1–§10 above.
+
+**Sources and access:** this round opened the primary sources below, unlike §2.
+- Kaggle's public metadata for MQTTset (no dataset file was downloaded for this section).
+- The MQTTset paper (P08) and the CICIoMT2024 page.
+- P14 (accepted manuscript) and P23 (arXiv v1), read through a rough text extraction that lost some lines. **Their readers must verify every figure. Neither paper counts as reviewed.**
+- P27: abstract only. P17 and the P19 journal version: the publisher redirected to a login, so no content was read.
+
+### 11.1 Evidence on existing items
+
+| Item | Evidence | Status of the item |
+|---|---|---|
+| D-01 (F-01) | Kaggle's file list (dataset version 5, updated 2021-07-14, 9,570,862,030 bytes in total) names `Data/PCAP/capture_1w.pcap` and five attack captures: `bruteforce.pcapng`, `capture_flood.pcap`, `capture_malariaDoS.pcap`, `malformed.pcap`, `slowite.pcap`. P08 says the dataset is "released both as CSV and PCAP raw data" [R]. PCAP contents were inspected later; see §12 | **Still open** |
+| D-01, attacker | No attacker IP appears in Kaggle's description or the part of P08 read verbatim (truncated). Broker 10.16.100.73; sensor IPs are listed | Open; check in the PCAPs |
+| R3 | One file per attack type. This suggests one episode per class, but a file could hold several | Open |
+| D-04, MQTTset | Kaggle lists the licence as CC BY-NC-SA 4.0. The dataset README states Apache License 2.0 (F-58) | Open; S2 to resolve |
+| D-04, CICIoMT2024 | The official page states no licence or terms | Open; enquiry needed |
+| F-12 | Wireshark source notes describe a parent process spawning a capture child | Open; verify on the device |
+| F-27 | The page does not mention IP handling. It confirms a network tap and that MQTT attacks ran against "MQTT simulated devices" | Open |
+| Q4 preview | Kaggle file sizes match P08 Table 3 exactly for four attack captures. **`slowite.pcap` differs: 807,678 bytes vs. 972,272** | Open; check under Q4 |
+
+### 11.2 New findings
+
+| ID | Severity | Finding | Evidence | Consequence |
+|---|---|---|---|---|
+| **F-46** | High | **Very few attack windows (corrected with measurements, §12.2).** At W = 5 s the five attack PCAPs yield **566 rows: `bruteforce` 442, `flood` 69, `malformed` 54, `lowrate` 1**. S-time test rows are 81, 9, 10, and 0. The earlier estimate from P08's durations (about 672 windows) is withdrawn | Measured PCAP aggregates; EVALUATION_PROTOCOL §3 | With four classes, one missed flood window moves macro-F1 by about 0.015 [calculated], so Δ = 0.05 equals about 3–4 flood or malformed errors. CIs may be wide and H1 inconclusive |
+| **F-47** | High | **F-04 is wider than recorded.** `processing_total` and `end_to_end` also subtract wall-clock values from `perf_counter_ns` stamps | DATA_FLOW §1 | These stages cannot be computed as specified |
+| **F-48** | High | **S-episode conflicts with the RQ1 training rule.** The protocol applies S-episode to lab data, yet lab data must never enter RQ1 training. If MQTTset has one episode per class, S-episode may never run under E1 | EVALUATION_PROTOCOL §3–4; DATASET_SELECTION §4 | RQ1's session-held-out arm has no valid home |
+| **F-49** | High | **The statement that MQTT papers evaluate within one dataset is wrong as written.** P14 trains on its own testbed and validates on MQTT-IoT-IDS2020, merged with a public DoS/MitM set. RF brute-force F1 is 88.74 in cross-validation and 76.38 in validation [R, Tables VIII, IX; verify]. No gateway or per-stage timing was found | RESEARCH_GAP_ANALYSIS §1–2; LITERATURE_REVIEW §5 | The cross-dataset wording needs narrowing. The combination claim is not affected by this paper alone |
+| **F-50** | Medium | **E5 uses optional stopping.** A second run happens only if FPR exceeds 1%, which also conflicts with "a single run is never a result" | EVALUATION_PROTOCOL §4, §8 | FPR results could be biased |
+| **F-51** | Medium | **Capture-level shortcut risk.** Benign traffic and each attack sit in separate files, so F25 and F26 (broker-wide context) could identify the capture rather than the attack | Kaggle file list; FEATURE_SPECIFICATION §2 | Could inflate results under every split (hypothesis; no model has been run). §12.2 records the measured F26 separation |
+| **F-52** | Medium | **P23 may be a pipeline-throughput precedent.** It reports about 1,000 to 5,400 packets/s on a Raspberry Pi 3B, single core, for k = 1 to 35 [R; verify]. Whether parsing and capture are included is not established. It is not MQTT-specific | P23 evaluation section | G2 must cite it fairly. Adds weight to F-07 |
+| **F-53** | Low | **The suggested `data/` ignore pattern is too broad.** It would also match `docs/data/`. The committed `.gitignore` is anchored instead | SETUP_GUIDE §2 | SETUP_GUIDE §2 needs a wording fix |
+
+### 11.3 Recommendations awaiting decision (all PROPOSED)
+
+Each row is the assistant's recommendation only. The experiment impact and approver are given so that the team can decide.
+
+| ID | Recommendation | Impact on experiments | Approver |
+|---|---|---|---|
+| D-01 / F-01 | Answer D-01 before the freeze. Pass only if the PCAPs show stable source IPs, timestamps, and an identifiable attacker | Sets the primary dataset, E1, E2 | Team; S2 executes |
+| F-02 | Write a tiered fallback. **A:** current plan. **B:** MQTT-IoT-IDS2020 and CICIoMT2024 within-dataset, with P15 as a `flood` cross target if D-02 passes. **C:** binary cross-test only, labelled as attack-family shift. `lowrate` is lab-only in B and C | RQ1 wording, E1, E2 in B or C | Team + supervisor |
+| F-03 | H2 primary metric: CPU-time share per run, `(C_capture + C_extract) / (C_capture + C_extract + C_inference + C_alert)`. Wall-clock share is secondary. H2 applies to a tshark-based pipeline only | E3 needs per-stage CPU timers | Team (S6 + S4) |
+| F-04 / F-47 | `perf_counter_ns` for in-process intervals, `time_ns` for wall-clock comparisons, a paired clock anchor at run start, NTP off during runs | Timer code, data dictionary | S4 + S6 |
+| F-05 | Episode bootstrap where ≥3 episodes exist. Otherwise a moving-block bootstrap on consecutive windows: 60 s blocks, 30 s and 120 s sensitivity, 1,000 resamples, labelled "conditional on one capture". Bootstrap S-rand and S-time test sets independently for the Δ CI | CIs cannot generalise across episodes | Team (S3) |
+| F-06 / F-25 | Remove the refit: train on TRAIN, tune and set τ on VAL, test once. `score = 1 − P(benign)`; at `score ≥ τ` assign the top attack class, otherwise benign. S-cross uses the same inner split of A | Less training data; pipeline diagram changes | S3 + S6, then team |
+| F-07 / F-52 | Assign P23 to S4, cross-checked by S5 | 19 reviews rather than 18 | Team |
+| F-08 | Three outcomes for each hypothesis: supported, rejected, inconclusive. **H1** (S-rand − S-time, primary dataset, ≥3 of 4 models): CI lower bound > Δ / upper bound < Δ. **H2** (DT, RF, HistGB at the nominal rate set before E3): share > 0.5 in all 3 repetitions for all three models / ≤ 0.5 in all / otherwise inconclusive. **H3** (dataset-trained model, same τ, pooled scenarios): lab lower bound > test upper bound + 0.01 / lab upper bound ≤ test upper bound | Fixes interpretation before any result exists | Team |
+| F-09 | Measure the share of attack-interval windows with no attacker packets. Above 20%, adopt `fx-0.2` (rows for open connections, new `open_conns` feature); otherwise keep `fx-0.1` and report the share. Close windows by timer | A 27th feature needs approval; benign rows and FPR denominators change | Team (S6 + S4) |
+| F-10, F-11, F-48 | **Proposed E10, lab detection (owner S6).** A: dataset-trained model on scheduled lab attacks. B: lab-trained model under S-episode, reported separately, never in RQ1 training. The dataset-trained model answers H3. A lab-trained model may run the demo only if the dataset-trained model fails and the team agrees, shown in P1. E5 scenarios stay out of its training | Adds a run set and a risk entry. E10 is **not** in the tracker | Team + supervisor |
+| F-12 | Sample the tshark process tree, plus system-wide CPU against the no-IDS baseline | E3, E4 | S4 |
+| F-13 | Adopt one consolidated M1 checklist | Single gate definition | Team; S1 |
+| F-18, F-23 | Split E9 into offline (M3) and gateway (M4) parts. Use a conservative fixed rate cap until PILOT-E3 | E9, Phase 02 | S3, S4 |
+| F-27 | Inspect one PCAP after D-04. Stable pseudonyms are acceptable; if IPs are randomised, use file-level labels and exclude source-level families | Could reduce E2 to binary | S2; team if E2 changes |
+| F-46 | Report test-window counts beside every F1. Set a minimum per class (proposed 30), below which the class is descriptive | E1, E2, reporting | Team |
+| F-49 | Narrow G4 and LITERATURE_REVIEW §5 after S1 verifies P14 | Gap v1.0 | S1, then team (DEC-02) |
+| F-50 | Fixed 2 runs per E5 scenario | About 6 h of runs for six scenarios | Team |
+| F-51 | Inspect F25 and F26 explicitly under Q6 and Q11 | Data-quality reports; may affect features | S2 + S3 |
+
+## 12. Addendum: measured D-01 evidence (2026-10-31)
+
+**Prepared by:** Claude Code (AI assistant), for team review. **Nothing in this section is an accepted decision. D-01 remains Open.** No D-xx, Q-xx, or DEC-xx status changed.
+
+**Evidence base:** read-only inspection of all six MQTTset PCAPs and three author reference files, using temporary standard-library parsers. **tshark was not used, so MQTT-level figures are not independently confirmed.** No model was trained. The reports and aggregates are kept outside Git, on the coordinating laptop, in `C:\Users\aksha_q43exq6\edgewatch-data\reports\`:
+
+| Report | Covers |
+|---|---|
+| `D-01_evidence_report.md` | `slowite`, `bruteforce` |
+| `D-01_remaining_attack_captures.md` | The other three attack captures |
+| `D-01_benign_capture_report.md` | `capture_1w` |
+| `D-01_leakage_and_option_b_analysis.md` | Leakage analysis, Option B |
+| `D-01_original_processing_audit.md` | README and two author scripts |
+| `D-01_team_decision_brief.md` | Supervisor summary |
+
+Where those reports disagree, the later one prevails. Each older report carries a superseded-status notice. A full index is in `reports\team-review\D-01_EVIDENCE_INDEX.md`.
+
+### 12.1 Raw PCAP availability (measured)
+
+| Capture | Packets (matches P08) | Measured duration | P08 duration | Rows at W = 5 s |
+|---|---:|---:|---:|---:|
+| `capture_1w` | 11,915,716 (yes) | 7 d 0 h 5 min | One week | 655,535 |
+| `bruteforce` | 14,501 (yes) | 37:17 | 30:00 | 442 |
+| `capture_flood` | 613 (yes) | 3:27 | 05:00 | 42 |
+| `capture_malariaDoS` | 130,223 (yes) | 2:07 | 05:00 | 27 |
+| `malformed` | 10,924 (yes) | 6:15 | 06:00 | 54 |
+| `slowite` | 9,202 (yes) | **0.697 s** | 10:00 | **1** |
+
+All six files parsed completely and contain IP addresses and timestamps. Timestamps are ordered except for small reversals (at most 38 µs) in `capture_flood` and `capture_1w`.
+
+### 12.2 Corrected F-46 figures (measured; rows follow the `fx-0.1` no-row rule)
+
+| Family | Rows W = 1 s | Rows W = 5 s | Rows W = 10 s | S-time at W = 5 s: train / val / test |
+|---|---:|---:|---:|---|
+| `benign` | 3,114,630 | 655,535 | 352,985 | 393,315 / 131,085 / 131,095 |
+| `bruteforce` | 1,454 | 442 | 224 | 268 / 87 / 81 |
+| `flood` (two captures) | 229 | 69 | 35 | 41 / 7 / 9 |
+| `malformed` | 144 | 54 | 34 | 30 / 9 / 10 |
+| `lowrate` | 1 | 1 | 1 | 0 / 0 / 0 |
+
+Benign rows outnumber attack rows by about 1,158 to 1 at W = 5 s [calculated]. S-time counts use a working rule (blocks at 60% and 80% of measured duration, whole windows, a 2W gap before validation and test), which is **not** a protocol change. At W = 10 s, `capture_malariaDoS` has no validation or test rows.
+
+### 12.3 Measured facts versus unverified hypotheses
+
+| Measured (parser only; no tshark) | Unverified hypothesis (no experiment) |
+|---|---|
+| **F26 is 5 or 10 in all benign rows and 1 in all attack rows** at W = 5 s; benign minimum 5 at W = 1 and 10 s | F26 or F25 would change a model's scores |
+| Each attack file holds one client, and no file holds attack and benign traffic together | A live attack with other clients active would show F26 above 1 |
+| Three capture setups, by broker address and link type; only `capture_flood` shares the benign setup | Other features (for example F03, F06, F09, F14, F16–F20) separate captures at window level |
+| `malformed.pcap`: no invalid framing or violations of the selected MQTT 3.1.1 rules | tshark would agree, or that the file holds no malformed packets by any definition |
+| `capture_1w`: 10 clients, one connection each, near-constant hourly volume, no attack-like counts | The file is purely benign; the clients came from one generator run |
+
+### 12.4 New findings
+
+| ID | Severity | Finding | Evidence | Consequence |
+|---|---|---|---|---|
+| **F-54** | High | **Author labels are file-level.** `rawparsing_normal.py` sets one constant `target` value per CSV. It has no packet-level check, attacker address, or time interval. Broker replies and TCP-only packets receive the file's label. Labels are author assignments, not verified ground truth | Original processing audit §3 | Use them as provenance only. Project labels follow DATA_QUALITY_PROTOCOL §4 |
+| **F-55** | High | **PCAP-to-CSV conversion is undocumented in the inspected files.** The link is inferred from file names. Neither script reads a PCAP or calls tshark. The code implies only the combined CSV drops IPs and absolute times, so the per-file CSVs may retain identity or other sensitive fields [inferred; **no CSV has been opened**] | Audit §3–4 | FEATURE_SPECIFICATION §5 corrected accordingly. Handle per-file CSVs under privacy rules |
+| **F-56** | High | **Payload is a retained feature.** `mqtt.msg` is among the script's 33 retained fields, along with `mqtt.willmsg` and `mqtt.willtopic`. `tcp.time_delta` is also retained, and capture identity is not addressed. **This comes from the script; the published CSVs have not been opened.** The effect on models is unmeasured | Audit §4, §6 | **E1-a uses published CSVs, but the project's rule says payload bytes are never features.** Team decision needed |
+| **F-57** | Medium | **Limits in the inspected `processingdata_ml.py`:** train and test category-encoded separately; test data used for neural-network early stopping; cumulative "training time"; weighted F1. **Whether this code produced the published results is not established**, so these are limits of the inspected scripts, and they say nothing about the validity of published scores | Audit §2 | Do not reuse the script |
+| **F-58** | Medium | **Licence discrepancy.** README: Apache License 2.0. Kaggle: CC BY-NC-SA 4.0. Applicable licence and redistribution rights are unresolved | Audit §2, §7 | D-04 stays open; DATASET_SELECTION §2 and §6 corrected. Follow the stricter practical limits meanwhile |
+| **F-59** | High | **`lowrate` cannot be split.** `slowite.pcap` yields 1 row at every W, so S-rand, S-time, and macro-F1 cannot include it as specified. Its holding phase is not visible, so **the F-09 measurement cannot be made from this file** | §12.1, §12.2 | Five-class macro-F1 is not computable as written |
+| **F-60** | High | **`malformed` is not shown to contain malformed packets** (see §12.3). `F23` remains unavailable without tshark | §12.3 | Class meaning and E2 equivalence with CICIoMT2024 are unproven |
+
+### 12.5 Other author-document differences
+
+| Topic | Paper or README | Inspected scripts or measurement |
+|---|---|---|
+| Mixing seed | P08: 7 | `rawparsing_normal.py` shuffles with 10; `processingdata_ml.py` uses 7 for a commented-out split and some models |
+| Sensors | "8" in text; 10 in Table 2 | 10 clients measured |
+| Sensor rates | Table 2 | Differ for 6 of 10 sensors |
+| "Mix" | Combined legitimate and malicious traffic | Row concatenation and shuffle; no traffic injection in the inspected code |
+| Reduced and augmented sets | Described | Creation code not inspected |
+
+**This audit does not claim that any published MQTTset score is invalid or inflated.** F25 and F26 are this project's features and are absent from the authors' pipeline. No published result was reproduced.
+
+### 12.6 Recommendations awaiting decision (all PROPOSED)
+
+The assistant's "Option B" and its alternatives are in `D-01_team_decision_brief.md`. Approval rows are in [DECISIONS.md](DECISIONS.md). **Option B is not approved.**

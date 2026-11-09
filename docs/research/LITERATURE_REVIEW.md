@@ -75,7 +75,7 @@ Statements are tagged as follows:
 
 | Dataset | MQTT traffic? | MQTT-specific attacks? | Raw PCAP? | Verdict |
 |---|---|---|---|---|
-| MQTTset [P08] | Yes, broker-side, 33 features (30 `mqtt.*`) [R] | Yes: flood, publish flood, SlowITe, malformed, brute force [R] | Kaggle release (PCAP availability to verify, D-01) | **Primary** |
+| MQTTset [P08] | Yes, broker-side, 33 features (30 `mqtt.*`) [R] | Yes: flood, publish flood, SlowITe, malformed, brute force [R] | Kaggle release; PCAPs present by parser, D-01 remains Open (DOCUMENTATION_AUDIT §12) | **Primary** (proposed; suitability inconclusive) |
 | MQTT-IoT-IDS2020 [P09] | Yes [R] | Only MQTT brute force; the other attacks are scans and SSH brute force [R] | Yes (IEEE DataPort) [R] | **Secondary** |
 | CICIoMT2024 [P22] | Yes, Wi-Fi/MQTT subset [R] | Yes: malformed, DoS/DDoS connect flood, DoS/DDoS publish flood [R] | Yes [R] | **Cross-dataset target** (independent lineage) |
 | DoS/DDoS-MQTT-IoT [P15] | Yes, physical testbed [U] | DoS/DDoS only (10 scenarios) [U] | To verify | Candidate cross-dataset target |

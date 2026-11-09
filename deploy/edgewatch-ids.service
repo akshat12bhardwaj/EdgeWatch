@@ -1,0 +1,26 @@
+# Unverified on real hardware: no Raspberry Pi was available. See docs/implementation/INSTALL_AND_OPERATE.md.
+# Deliberately no Requires= or BindsTo= on mosquitto.service, so stopping this unit cannot stop the broker, and the reverse.
+[Unit]
+Description=Edge Watch passive MQTT IDS
+After=network-online.target
+
+[Service]
+User=edgewatch
+Environment=PYTHONPATH=/opt/edgewatch/src
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/edgewatch/.venv/bin/python -m ids.service --db /var/lib/edgewatch/events.sqlite --model /var/lib/edgewatch/models/current --capture eth0 --port 1883
+Restart=on-failure
+RestartSec=5
+# dumpcap needs capture rights; give them to its binary with setcap, not to this service.
+NoNewPrivileges=false
+ProtectSystem=strict
+ReadWritePaths=/var/lib/edgewatch
+ProtectHome=true
+PrivateTmp=true
+# Connections never closed grow F22 state without limit until the F22 decision is made. This cap restarts the IDS, not the broker.
+MemoryMax=512M
+CPUQuota=100%
+Nice=5
+
+[Install]
+WantedBy=multi-user.target

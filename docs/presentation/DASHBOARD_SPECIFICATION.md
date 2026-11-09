@@ -1,5 +1,7 @@
 # Dashboard Specification
 
+> **Status (2026-11-09):** describes the original console. The shipped dashboard has three sections (Smart Home, Attack Simulator, Alerts); the research, comparison and diagnostics panels described here were removed. See [INSTALL_AND_OPERATE.md §8](../implementation/INSTALL_AND_OPERATE.md).
+
 **Data contract:** [DATA_FLOW.md §3](../architecture/DATA_FLOW.md#3-event-contract). **Visual language:** [VISUAL_CONCEPT.md](VISUAL_CONCEPT.md). **Justification per panel:** [VISUALIZATION_RESEARCH_MAPPING.md](VISUALIZATION_RESEARCH_MAPPING.md).
 
 ## Global behaviour

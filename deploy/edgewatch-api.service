@@ -1,0 +1,23 @@
+# Unverified on real hardware. Binding beyond loopback requires EDGEWATCH_API_TOKEN, in the environment file below.
+[Unit]
+Description=Edge Watch dashboard API
+After=network-online.target
+
+[Service]
+User=edgewatch
+WorkingDirectory=/opt/edgewatch
+Environment=PYTHONPATH=/opt/edgewatch/src:/opt/edgewatch
+Environment=EDGEWATCH_DB=/var/lib/edgewatch/events.sqlite
+Environment=EDGEWATCH_MODEL=/var/lib/edgewatch/models/current
+EnvironmentFile=-/etc/edgewatch/api.env
+ExecStart=/opt/edgewatch/.venv/bin/python -m dashboard.api --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+ProtectSystem=strict
+ReadWritePaths=/var/lib/edgewatch
+ProtectHome=true
+PrivateTmp=true
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

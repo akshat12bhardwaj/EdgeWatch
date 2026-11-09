@@ -1,0 +1,6 @@
+[wokwi]
+version = 1
+firmware = '.pio/build/esp32dev/firmware.bin'
+elf = '.pio/build/esp32dev/firmware.elf'
+# Serial port as an RFC2217 server on this machine, for `python -m lab.home serial-bridge` (rfc2217://localhost:4000).
+rfc2217ServerPort = 4000

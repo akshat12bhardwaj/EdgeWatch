@@ -25,6 +25,7 @@ passwd
 # Python environments and caches
 .venv/
 venv/
+*.egg-info/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -35,8 +36,35 @@ node_modules/
 dist/
 
 # Generated artefacts
-# results/ stays tracked for small JSON/CSV files (DATA_FLOW §4), but not model binaries or stores
-results/**/*.joblib
+# Research evidence stays local; publication includes source and documentation only.
+/results/
+/edgewatch-data/
+/models/
+/raw/
+/reference/
+/engineering/
+/reports/
+credentials.json
+secrets.h
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+*.db-wal
+*.db-shm
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.h5
+*.onnx
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.pcap.*
+*.pcapng.*
 *.joblib
 *.sqlite
 *.sqlite3

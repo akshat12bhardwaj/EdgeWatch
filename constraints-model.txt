@@ -1,0 +1,6 @@
+# Versions the bundled models were saved with. ids.detector refuses a model from another scikit-learn version (ADR-11).
+# Install with: python -m pip install -e ".[offline,dev]" -c constraints-model.txt
+scikit-learn==1.8.0
+joblib==1.5.3
+numpy==2.3.3
+scipy==1.16.2

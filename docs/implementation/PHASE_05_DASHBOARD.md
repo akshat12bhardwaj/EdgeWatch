@@ -1,5 +1,7 @@
 # Phase 05: Command-Center Dashboard → Milestone M5
 
+> **Status (2026-11-09):** describes the original console. The shipped dashboard has three sections (Smart Home, Attack Simulator, Alerts); the research, comparison and diagnostics panels described here were removed. See [INSTALL_AND_OPERATE.md §8](../implementation/INSTALL_AND_OPERATE.md).
+
 1. **Objective and rationale:** build the Edge Watch console ([DASHBOARD_SPECIFICATION.md](../presentation/DASHBOARD_SPECIFICATION.md)) that makes the measured system visible without overstating it.
 2. **Prerequisites:** M1 (the event contract is frozen). Work can start in parallel with Phases 01–04 using **synthetic** events.
 3. **Inputs / outputs:**
