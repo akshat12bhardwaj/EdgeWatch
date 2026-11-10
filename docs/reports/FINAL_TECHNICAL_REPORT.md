@@ -1,5 +1,7 @@
 # Edge Watch: Final Technical Report
 
+> Historical technical reference. Current operation is documented in ../README.md; old UI, deployment and research plans are not current instructions.
+
 **Date:** 2026-11-02. **Prepared by:** Claude Code (AI assistant). **Status:** the software works end to end on a development laptop. It has never run on a Raspberry Pi or a physical network, and no result here answers RQ1-RQ3.
 
 **Evidence levels used below:**
@@ -13,7 +15,7 @@
 
 ## 1. What exists
 
-Clients → Mosquitto → dumpcap → decoder → FeatureAggregator → model → alerts → SQLite → FastAPI and WebSocket → React dashboard. Passive, with no blocking code. Details: [FINAL_SYSTEM_ARCHITECTURE.md](../architecture/FINAL_SYSTEM_ARCHITECTURE.md). To run it: [INSTALL_AND_OPERATE.md](../implementation/INSTALL_AND_OPERATE.md).
+Clients → Mosquitto → dumpcap → decoder → FeatureAggregator → model → alerts → SQLite → FastAPI and WebSocket → React dashboard. Passive, with no blocking code. Details: [FINAL_SYSTEM_ARCHITECTURE.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/architecture/FINAL_SYSTEM_ARCHITECTURE.md). To run it: [INSTALL_AND_OPERATE.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/implementation/INSTALL_AND_OPERATE.md).
 
 **Tests (2026-11-09):** 367 Python unit tests and 18 frontend tests pass; integration tests passed at session start (2).
 
@@ -147,7 +149,7 @@ Recorded in [DECISIONS.md](../DECISIONS.md) as OD-1 to OD-5. Evidence: `edgewatc
 
 ## 10. Reproduction
 
-Commands are in [INSTALL_AND_OPERATE.md](../implementation/INSTALL_AND_OPERATE.md) section 4. Lab traffic is real and timed, so reruns are similar, not identical. Earlier model results stay in `results/ENG-*-v1` to `-v5`.
+Commands are in [INSTALL_AND_OPERATE.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/implementation/INSTALL_AND_OPERATE.md) section 4. Lab traffic is real and timed, so reruns are similar, not identical. Earlier model results stay in `results/ENG-*-v1` to `-v5`.
 
 ## 11. Software-only completion, 2026-11-09
 

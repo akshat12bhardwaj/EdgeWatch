@@ -1,7 +1,9 @@
 # Dataset Selection
 
+> Historical technical reference. Current operation is documented in ../README.md; old UI, deployment and research plans are not current instructions.
+
 **Status:** Shortlist proposed. Final selection at M1, after blockers D-01 to D-04 are resolved.
-Evidence for each property is in [PAPER_MATRIX.csv](../research/PAPER_MATRIX.csv) and the literature review [§3](../research/LITERATURE_REVIEW.md#3-datasets-which-ones-actually-contain-mqtt-sq3).
+Evidence for each property is in [PAPER_MATRIX.csv](../research/PAPER_MATRIX.csv) and the literature review [§3](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/research/LITERATURE_REVIEW.md#3-datasets-which-ones-actually-contain-mqtt-sq3).
 
 ## 1. Selection criteria
 

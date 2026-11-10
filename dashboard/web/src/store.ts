@@ -17,6 +17,12 @@ export interface State {
 }
 
 export const empty: State = { runId: null, run: null, windows: [], alerts: [], resources: [], markers: [], nodes: [], order: [], provenances: [], missingProvenance: false, lastTs: null, lastReceived: null, lastId: 0 };
+
+/** Remove only the alert IDs the service actually deleted; monitoring state stays intact. */
+export function removeAlertHistory(s: State, ids: readonly string[]): State {
+  const removed = new Set(ids);
+  return { ...s, alerts: s.alerts.filter((a) => !removed.has(a.alert_id)) };
+}
 const MAX_WINDOWS = 1200, MAX_RESOURCES = 1800;
 
 // Applied in arrival order. A new run_start resets the view, so two runs are never shown as one.
@@ -131,18 +137,25 @@ export interface Device { key: string; name: string; icon: string; kind: "profil
 /** Friendly names: "Motion sensor 2" from the runner's profile map, "Lab attacker" for scheduled attack sources, otherwise unknown. */
 /** layout: the Smart Home devices; a source labelled "profile@id" by a layout run takes that device's name and icon. */
 export function deviceDirectory(s: State, layout: { id: string; name: string; icon: string }[] = []): Map<string, Device> {
-  const devices = devicesOf(s), seen: Record<string, number> = {}, out = new Map<string, Device>();
+  const devices = devicesOf(s), seen: Record<string, number> = {}, totals: Record<string, number> = {}, out = new Map<string, Device>();
+  // Scheduled attacker sources take precedence over profile metadata; a demo can reuse one source across attack families.
+  for (const m of s.markers) if (m.marker === "scheduled_attack" && m.source_key && !out.has(m.source_key)) out.set(m.source_key, { key: m.source_key, name: "Lab attacker", icon: "attack", kind: "attacker", profile: null, family: null });
+  for (const [key] of Object.entries(devices)) {
+    if (out.has(key)) continue;
+    const profile = devices[key].split("@")[0], label = PROFILE[profile]?.label ?? profile.replaceAll("_", " ");
+    totals[label] = (totals[label] ?? 0) + 1;
+  }
   for (const [key, label] of Object.entries(devices)) {
+    if (out.has(key)) continue;
     const [profile, layoutId] = label.split("@");
     const placed = layoutId ? layout.find((d) => d.id === layoutId) : undefined;
     const p = PROFILE[profile] ?? { label: profile.replaceAll("_", " "), icon: "chip" };
     seen[p.label] = (seen[p.label] ?? 0) + 1;
     // a layout id that is no longer placed: say so, rather than reuse a name a current device may have
-    const name = placed ? placed.name : layoutId && layout.length ? `Removed ${p.label.toLowerCase()}` : "single" in p && p.single ? p.label : `${p.label} ${seen[p.label]}`;
+    const name = placed ? placed.name : layoutId && layout.length ? `Removed ${p.label.toLowerCase()}` : "single" in p && p.single && totals[p.label] === 1 ? p.label : `${p.label} ${seen[p.label]}`;
     out.set(key, { key, name, icon: placed?.icon ?? p.icon, kind: "profile", profile, family: null, layoutId });
   }
-  for (const m of s.markers) if (m.marker === "scheduled_attack" && m.source_key && !out.has(m.source_key)) out.set(m.source_key, { key: m.source_key, name: `Lab attacker: ${scenarioText(m.family ?? "").name.toLowerCase()}`, icon: "attack", kind: "attacker", profile: null, family: m.family ?? null });
-  for (const key of s.order) if (!out.has(key)) out.set(key, { key, name: `Unknown device ${key.slice(-4)}`, icon: "unknown", kind: "unknown", profile: null, family: null });
+  for (const key of s.order) if (!out.has(key)) out.set(key, { key, name: `Unidentified source ${key.slice(-4)}`, icon: "unknown", kind: "unknown", profile: null, family: null });
   return out;
 }
 
@@ -153,7 +166,7 @@ export const SCENARIO_TEXT: Record<string, { name: string; text: string }> = {
   flood_connect: { name: "Suspicious connection activity", text: "A simulated attacker opens and drops connections very quickly, straining the hub." },
   lowrate: { name: "Low-rate connection hold", text: "A simulated attacker quietly holds connections open to use up the hub's capacity." },
   topic_probe: { name: "Topic exploration", text: "A simulated attacker probes many topic names to map the home. The AI model was not trained on this, so it may go undetected." },
-  wildcard: { name: "Listening to every device", text: "A simulated attacker subscribes to all topics. Only a simple rule watches for this; the AI model was not trained on it." },
+  wildcard: { name: "Listening to every device", text: "The attacker uses an MQTT wildcard subscription. A separate rule indicator watches for this behavior." },
 };
 export const scenarioText = (f: string) => SCENARIO_TEXT[f] ?? { name: f.replaceAll("_", " "), text: "" };
 
@@ -180,5 +193,21 @@ export function demoStages(s: State, since: number, now: number) {
   const begun = attacks.filter((m) => m.start_ns! / 1e9 <= now);
   const suspicious = s.windows.some((w) => w.state !== "normal" && begun.some((m) => m.source_key === w.source_key && w.window_end > m.start_ns! / 1e9));
   const outcomes = episodeOutcomes(s).filter((o) => o.marker.start_ns! / 1e9 >= since - 1);
-  return { normal: s.windows.some((w) => w.window_end >= since), scheduled: attacks.length, begun: begun.length, suspicious, alerted: outcomes.filter((o) => o.alert).length, outcomes };
+  return { normal: s.windows.some((w) => w.state === "normal" && w.window_end >= since), scheduled: attacks.length, begun: begun.length, suspicious, alerted: outcomes.filter((o) => o.alert).length, outcomes };
+}
+
+export const ACTIVITY_WINDOW_S = 10; // mean of the IDS's 1 Hz counts: devices publish every few seconds, so a single second is mostly 0
+export const ACTIVITY_FRESH_S = 15; // the IDS samples at 1 Hz; older than this is no measurement at all, never zero traffic
+export type ActivityStatus = "Receiving" | "No recent traffic" | "Monitoring paused" | "Disconnected" | "Data unavailable";
+export interface Activity { status: ActivityStatus; rate: number | null; ts: number | null }
+/** The one network-activity reading: broker MQTT messages/s counted by the IDS capture. Shared by every card that shows it. */
+export function networkActivity(s: State, health: { ids_enabled?: boolean } | null, connected: boolean, now: number): Activity {
+  const latest = s.resources.reduce<ResourceEvent | null>((a, r) => (!a || r.ts > a.ts ? r : a), null); // newest by time, even if events arrived out of order
+  const fresh = latest && now - latest.ts <= ACTIVITY_FRESH_S && Number.isFinite(latest.mqtt_msgs_per_s) ? latest : null;
+  if (!connected) return { status: "Disconnected", rate: null, ts: latest?.ts ?? null };
+  if (health?.ids_enabled === false || (fresh as { ids_enabled?: boolean } | null)?.ids_enabled === false) return { status: "Monitoring paused", rate: null, ts: latest?.ts ?? null };
+  if (!fresh) return { status: "Data unavailable", rate: null, ts: latest?.ts ?? null };
+  const recent = s.resources.filter((r) => r.ts > fresh.ts - ACTIVITY_WINDOW_S && r.ts <= fresh.ts && Number.isFinite(r.mqtt_msgs_per_s));
+  const rate = recent.reduce((a, r) => a + r.mqtt_msgs_per_s, 0) / recent.length;
+  return { status: rate > 0 ? "Receiving" : "No recent traffic", rate, ts: fresh.ts };
 }

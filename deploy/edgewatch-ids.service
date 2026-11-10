@@ -1,4 +1,4 @@
-# Unverified on real hardware: no Raspberry Pi was available. See docs/implementation/INSTALL_AND_OPERATE.md.
+# Unverified on real hardware: no Raspberry Pi was available. See docs/SETUP.md.
 # Deliberately no Requires= or BindsTo= on mosquitto.service, so stopping this unit cannot stop the broker, and the reverse.
 [Unit]
 Description=Edge Watch passive MQTT IDS

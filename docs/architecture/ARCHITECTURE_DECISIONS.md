@@ -1,12 +1,14 @@
 # Architecture Decision Records
 
+> Historical technical reference. Current operation is documented in ../README.md; old UI, deployment and research plans are not current instructions.
+
 Format: Context → Decision → Alternatives → Consequences. Status values: **Proposed**, **Accepted**, **Superseded**. All records start as *Proposed* and require team agreement at M1 ([DECISIONS.md](../DECISIONS.md)).
 
 ---
 
 ## ADR-01 Frame the contribution as an evaluation and systems-measurement study
 - **Status:** Proposed
-- **Context:** Model design for MQTT IDS is crowded (P07–P19). Evaluation realism is the documented weakness ([RESEARCH_GAP_ANALYSIS.md](../research/RESEARCH_GAP_ANALYSIS.md)).
+- **Context:** Model design for MQTT IDS is crowded (P07–P19). Evaluation realism is the documented weakness ([RESEARCH_GAP_ANALYSIS.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/research/RESEARCH_GAP_ANALYSIS.md)).
 - **Decision:** No new model architecture. Contributions are the leakage-controlled benchmark (RQ1), stage-wise edge cost (RQ2), benign FPR (RQ3), and a reproducible pipeline and demo.
 - **Alternatives:** A new deep model (high novelty risk, high cost); federated learning (P14, P21 already cover it).
 - **Consequences:** Rigour of the protocol becomes the core deliverable. A "negative" result (no drop) is still publishable as a finding.
@@ -16,7 +18,7 @@ Format: Context → Decision → Alternatives → Consequences. Status values: *
 - **Context:** All public MQTT-specific attacks target the broker (P08, P22). Inline blocking adds safety and availability risks that are outside the research question.
 - **Decision:** Capture passively on the gateway that hosts the broker. Raise alerts only.
 - **Alternatives:** Inline proxy (adds latency to the data plane and is a single point of failure); broker plugin (couples the IDS to Mosquitto internals, and cannot see TCP-level behaviour).
-- **Consequences:** Cannot stop attacks. Cannot see attacks that never reach the gateway (e.g., attacks on subscribers elsewhere). Documented in [THREAT_MODEL.md](THREAT_MODEL.md).
+- **Consequences:** Cannot stop attacks. Cannot see attacks that never reach the gateway (e.g., attacks on subscribers elsewhere). Documented in [THREAT_MODEL.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/architecture/THREAT_MODEL.md).
 
 ## ADR-03 One feature extractor for offline training and live inference
 - **Status:** Proposed
@@ -62,7 +64,7 @@ Format: Context → Decision → Alternatives → Consequences. Status values: *
 
 ## ADR-07 Isolated lab network
 - **Status:** Proposed
-- **Decision:** A dedicated switch or access point with **no uplink**, or a host-only virtual network. All attack scripts carry a hard-coded allow-list containing the broker's lab IP. There is no public broker and no third-party device. Details are in [THREAT_MODEL.md](THREAT_MODEL.md#7-lab-safety-boundaries).
+- **Decision:** A dedicated switch or access point with **no uplink**, or a host-only virtual network. All attack scripts carry a hard-coded allow-list containing the broker's lab IP. There is no public broker and no third-party device. Details are in [THREAT_MODEL.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/architecture/THREAT_MODEL.md#7-lab-safety-boundaries).
 
 ## ADR-08 Plaintext MQTT for primary experiments; TLS as a limitation study
 - **Status:** Proposed

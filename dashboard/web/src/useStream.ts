@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { apply, Base, empty, State } from "./store";
+import { AlertEvent, apply, Base, empty, removeAlertHistory, State } from "./store";
 
-export interface Health { status: string; store: string; ids: string; ids_enabled?: boolean; run: any; provenance: string | null; model_loaded?: boolean | null; broker_running?: boolean | null }
+export const ALERT_HISTORY_CLEARED = "edgewatch-alert-history-cleared";
+
+export interface Health { status: string; store: string; ids: string; ids_enabled?: boolean; run: any; provenance: string | null; model_loaded?: boolean | null; broker_running?: boolean | null; alerts_total?: number | null }
 
 async function json<T>(url: string): Promise<T | null> {
   try {
@@ -20,6 +22,20 @@ export function useStream() {
   const [health, setHealth] = useState<Health | null>(null);
   const [apiDown, setApiDown] = useState(false);
   const buffer = useRef<Base[]>([]);
+  const removedAlerts = useRef(new Set<string>());
+
+  useEffect(() => {
+    const cleared = (event: Event) => {
+      const ids: unknown = (event as CustomEvent).detail;
+      if (!Array.isArray(ids) || !ids.every((id) => typeof id === "string")) return;
+      ids.forEach((id) => removedAlerts.current.add(id));
+      buffer.current = buffer.current.filter((e) => e.event_type !== "alert" || !removedAlerts.current.has((e as AlertEvent).alert_id));
+      setState((s) => removeAlertHistory(s, ids));
+      json<Health>("/api/health").then((h) => h && setHealth(h)); // the all-history count drops now, not at the next poll
+    };
+    window.addEventListener(ALERT_HISTORY_CLEARED, cleared);
+    return () => window.removeEventListener(ALERT_HISTORY_CLEARED, cleared);
+  }, []);
 
   useEffect(() => {
     let closed = false, socket: WebSocket | null = null, retry: number | undefined, lastId = 0;
@@ -31,7 +47,7 @@ export function useStream() {
       socket.onmessage = (m) => {
         const events: Base[] = JSON.parse(m.data);
         for (const e of events) if (e.id) lastId = Math.max(lastId, e.id);
-        buffer.current.push(...events);
+        buffer.current.push(...events.filter((e) => e.event_type !== "alert" || !removedAlerts.current.has((e as AlertEvent).alert_id)));
       };
       socket.onclose = () => { setConnected(false); retry = window.setTimeout(connect, 1500); };
     };
@@ -49,7 +65,7 @@ export function useStream() {
         all.push(...((alerts ?? []) as Base[]).reverse());
         const ids = all.filter((e) => e.id).map((e) => e.id as number);
         lastId = ids.length ? Math.max(...ids) : 0;
-        setState(apply(empty, all, Date.now() / 1000));
+        setState(removeAlertHistory(apply(empty, all, Date.now() / 1000), [...removedAlerts.current]));
       }
       setLoading(false);
       connect();

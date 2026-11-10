@@ -1,10 +1,10 @@
 // Alerts: plain-language cards, the incident drawer, and the persisted alert history. Technical evidence stays one click away.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertEvent, classText, Device, FEATURE_NAMES, FEATURE_PLAIN, State, STATUS_PLAIN, WindowEvent } from "./store";
-import { ago, Card, clock, duration, Empty, fmt, Icon, PageHead, Pill, SEV_TONE, useNow } from "./ui";
-import { json } from "./useStream";
+import { ago, Card, clock, detail as requestDetail, duration, Empty, fmt, Icon, PageHead, Pill, send, SEV_TONE, useNow } from "./ui";
+import { ALERT_HISTORY_CLEARED, json } from "./useStream";
 
-export const deviceName = (devices: Map<string, Device>, key: string) => devices.get(key)?.name ?? `Device ${key.slice(-4)}`;
+export const deviceName = (devices: Map<string, Device>, key: string) => devices.get(key)?.name ?? `Unidentified source ${key.slice(-4)}`;
 const STATUS_TONE = { matches_scheduled_attack: "ok", no_scheduled_attack: "warn", unverified_prediction: "muted" } as const;
 const COUNTS = new Set(["F01", "F02", "F03", "F04", "F05", "F06", "F09", "F10", "F12", "F13", "F14", "F15", "F19", "F23", "F24", "F25"]); // per-window counts; the rest are means, ratios or maxima
 const KIND_ICON: Record<string, string> = { flood: "wave", bruteforce: "plug", malformed: "attack", lowrate: "clock", wildcard_subscribe: "motion" };
@@ -106,49 +106,101 @@ export function IncidentDrawer({ alert, state, devices, onClose }: { alert: Aler
           </div>
           {last && <><h3>Raw counts, latest window</h3><div className="counts">{["F09", "F10", "F12", "F13", "F03", "F04", "F23", "F22"].map((f) => <div key={f}><b className="num">{fmt(last[f], 0)}</b><span>{FEATURE_NAMES[f]}</span></div>)}</div></>}
         </details>
-        <footer className="drawer-foot">Evidence shows what the model weighted; it is not proof of malicious intent.</footer>
+        <footer className="drawer-foot"><a href="#/home" onClick={onClose}>View home network</a><br />Evidence shows what the model weighted; it is not proof of malicious intent.</footer>
       </aside>
     </>
   );
 }
 
-type Run = { run_id: string; provenance: string | null; started: number; windows: number; alerts: number | null; scenario: string | null; model_id: string | null };
-const SCENARIO_LABEL: Record<string, string> = { "demo-benign-then-attacks": "Startup demo", "dashboard-controlled": "Security demos", "benign-base": "Normal traffic only" };
-const runLabel = (r: Run) => `${new Date(r.started * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · ${SCENARIO_LABEL[r.scenario ?? ""] ?? r.scenario ?? "session"}${r.provenance === "replay" ? " (replay)" : ""}`;
+export const alertHistoryRequest = (accepted: boolean) => accepted ? { scope: "all", run_id: null, confirmation: "CLEAR ALERT HISTORY" } : null;
 
-export function AlertsPage({ state, devices, onOpen, source }: { state: State; devices: Map<string, Device>; onOpen: (a: AlertEvent) => void; source?: string }) {
-  const [runs, setRuns] = useState<Run[]>([]);
-  const [filters, setFilters] = useState({ run_id: state.runId ?? "", severity: "", kind: "", status: "", predicted_class: "", source: source ?? "" });
+function ClearHistory({ onCleared }: { onCleared: (ids: string[]) => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [accepted, setAccepted] = useState(false), [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const request = alertHistoryRequest(accepted);
+  async function clear() {
+    if (!request || busy) return;
+    setBusy(true); setError(null);
+    const result = await send("/api/alerts/history/clear", request);
+    const data = result.data;
+    if (!result.ok) setError(`History was not cleared (${result.status}): ${requestDetail(data)}`);
+    else if (!Array.isArray(data?.deleted_alert_ids) || !data.deleted_alert_ids.every((id: unknown) => typeof id === "string") || typeof data?.remaining_alerts !== "number") setError("The service returned an unexpected response. Reload the history to check its current state.");
+    else {
+      window.dispatchEvent(new CustomEvent(ALERT_HISTORY_CLEARED, { detail: data.deleted_alert_ids }));
+      onCleared(data.deleted_alert_ids);
+      dialog.current?.close();
+    }
+    setBusy(false);
+  }
+  return <>
+    <button className="btn btn-danger btn-sm" onClick={() => { setAccepted(false); setError(null); dialog.current?.showModal(); }}>Clear Alert History</button>
+    <dialog ref={dialog} className="card confirm-dialog" aria-labelledby="clear-history-title" aria-describedby="clear-history-description" onCancel={(e) => { if (busy) e.preventDefault(); }}>
+      <h2 id="clear-history-title">Clear Alert History?</h2>
+      <p id="clear-history-description">This permanently deletes every stored security alert, from all monitoring sessions including the current one. Monitoring keeps running and new alerts appear as usual. Devices, layouts, models, datasets and other telemetry are not changed.</p>
+      <label className="check"><input type="checkbox" checked={accepted} disabled={busy} onChange={(e) => setAccepted(e.target.checked)} />I understand that deleted alerts cannot be restored.</label>
+      {error && <p role="alert" className="warn">{error}</p>}
+      <div className="row-actions"><button className="btn btn-sm" disabled={busy} onClick={() => dialog.current?.close()}>Cancel</button><button className="btn btn-danger btn-sm" disabled={!request || busy} onClick={clear}>{busy ? "Clearing…" : "Clear Alert History"}</button></div>
+    </dialog>
+  </>;
+}
+
+/** The alerts a finished simulation produced, by verified alert ID; unknown IDs are dropped rather than guessed. */
+export function focusedAlerts(focus: string, fetched: AlertEvent[] | null | undefined, live: AlertEvent[]) {
+  return focus.split(",").filter(Boolean).map((id) => fetched?.find((a) => a.alert_id === id) ?? live.find((a) => a.alert_id === id)).filter((a): a is AlertEvent => !!a);
+}
+
+export function AlertsPage({ state, devices, onOpen, source, focus }: { state: State; devices: Map<string, Device>; onOpen: (a: AlertEvent) => void; source?: string; focus?: string }) {
+  const [filters, setFilters] = useState({ time: "all", from: "", to: "", severity: "", source: source ?? "" });
   const [alerts, setAlerts] = useState<AlertEvent[] | null | undefined>(undefined);
-  useEffect(() => { json<Run[]>("/api/runs").then((r) => setRuns(r ?? [])); }, []);
+  const [revision, setRevision] = useState(0), [notice, setNotice] = useState<string | null>(null);
+  const historyRevision = useRef(0);
   useEffect(() => { if (source !== undefined) setFilters((f) => ({ ...f, source })); }, [source]);
   useEffect(() => {
-    const q = new URLSearchParams({ limit: "500", ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) });
-    json<AlertEvent[]>(`/api/alerts?${q}`).then((a) => setAlerts(a));
-  }, [filters, state.alerts.length]);
+    let active = true;
+    const requestRevision = historyRevision.current;
+    const qFilters: Record<string, string> = { limit: "500" };
+    if (filters.severity) qFilters.severity = filters.severity;
+    if (filters.source) qFilters.source = filters.source;
+    const now = new Date();
+    if (filters.time === "hour") qFilters.since = String(Date.now() / 1000 - 3600);
+    if (filters.time === "today") { const start = new Date(now); start.setHours(0, 0, 0, 0); qFilters.since = String(start.getTime() / 1000); }
+    if (filters.time === "week") qFilters.since = String(Date.now() / 1000 - 7 * 86400);
+    if (filters.time === "custom" && filters.from) qFilters.since = String(new Date(`${filters.from}T00:00:00`).getTime() / 1000);
+    if (filters.time === "custom" && filters.to) qFilters.until = String(new Date(`${filters.to}T23:59:59.999`).getTime() / 1000);
+    const q = new URLSearchParams(qFilters);
+    json<AlertEvent[]>(`/api/alerts?${q}`).then((a) => { if (active && requestRevision === historyRevision.current) setAlerts(a); });
+    return () => { active = false; };
+  }, [filters, state.alerts.length, revision]);
   const set = (k: string, v: string) => setFilters((f) => ({ ...f, [k]: v }));
-  const classes = useMemo(() => [...new Set((alerts ?? []).map((a) => a.predicted_class))], [alerts]);
+  const selectableDevices = [...devices.values()].filter((d) => d.kind !== "unknown");
+  const focused = focus === undefined ? null : focusedAlerts(focus, alerts, state.alerts);
+  const opened = useRef<string | null>(null);
+  useEffect(() => { // open the simulation's single alert once; several are listed instead
+    if (focused?.length === 1 && opened.current !== focus) { opened.current = focus!; onOpen(focused[0]); }
+  }, [focus, focused?.length]);
   const counts = { high: 0, medium: 0, low: 0 };
   for (const a of alerts ?? []) counts[a.severity]++;
   return (
     <div className="page">
       <PageHead eyebrow="Security events" title="Alerts" sub="Every suspicious event Edge Watch has raised, explained in plain language. Select one to see what happened." />
+      <div className="row-actions"><ClearHistory onCleared={(ids) => { historyRevision.current++; setAlerts((old) => old?.filter((a) => !ids.includes(a.alert_id))); setRevision((n) => n + 1); setNotice(`${ids.length} alert${ids.length === 1 ? "" : "s"} deleted.`); }} />{notice && <p className="dim" role="status">{notice}</p>}</div>
+      {focused ? <>
+        <div className="focus-banner"><p className="dim" role="status">{focused.length ? `Showing ${focused.length === 1 ? "the alert" : `${focused.length} alerts`} raised during your simulation.` : alerts === undefined && focus ? "Loading the simulation's alerts…" : ""}</p><a className="btn btn-sm" href="#/alerts">Show all alerts</a></div>
+        {focused.length ? <div className="alert-list">{focused.map((a) => <AlertCard key={a.alert_id} alert={a} devices={devices} onOpen={onOpen} full />)}</div>
+          : !focus ? <Empty icon="check" title="No alert from this simulation">The simulation finished, but Edge Watch did not raise an IDS alert, so no alert record exists for it.</Empty>
+          : alerts !== undefined && <Empty icon="info" title="Simulation alerts not found">These alerts are no longer in the history. Show all alerts to see what remains.</Empty>}
+      </> : <>
       <Card className="filters-card">
         <div className="filters">
+          <label>Time<select value={filters.time} onChange={(e) => set("time", e.target.value)}><option value="all">All time</option><option value="hour">Last hour</option><option value="today">Today</option><option value="week">Last 7 days</option><option value="custom">Custom range</option></select></label>
           <div className="seg" role="group" aria-label="Severity">
             {["", "high", "medium", "low"].map((s) => <button key={s} className={filters.severity === s ? "on" : ""} aria-pressed={filters.severity === s} onClick={() => set("severity", s)}>{s ? `${s[0].toUpperCase()}${s.slice(1)}` : "All"}</button>)}
           </div>
-          <label>Monitoring session<select value={filters.run_id} onChange={(e) => set("run_id", e.target.value)}><option value="">All sessions</option>{runs.map((r) => <option key={r.run_id} value={r.run_id}>{runLabel(r)} · {r.alerts ?? 0} alerts</option>)}</select></label>
-          <label>Device<select value={filters.source} onChange={(e) => set("source", e.target.value)}><option value="">Any device</option>{[...devices.values()].map((d) => <option key={d.key} value={d.key}>{d.name}</option>)}{filters.source && !devices.has(filters.source) && <option value={filters.source}>{deviceName(devices, filters.source)}</option>}</select></label>
+          <label>Device / source<select value={filters.source} onChange={(e) => set("source", e.target.value)}><option value="">Any source</option>{selectableDevices.map((d) => <option key={d.key} value={d.key}>{d.name}</option>)}{filters.source && !selectableDevices.some((d) => d.key === filters.source) && <option value={filters.source}>{deviceName(devices, filters.source)}</option>}</select></label>
+          {filters.time === "custom" && <><label>From<input type="date" value={filters.from} onChange={(e) => set("from", e.target.value)}/></label><label>To<input type="date" value={filters.to} onChange={(e) => set("to", e.target.value)}/></label></>}
+          <button className="btn btn-sm" onClick={() => setFilters({ time: "all", from: "", to: "", severity: "", source: "" })}>Reset filters</button>
         </div>
-        <details className="more">
-          <summary>More filters</summary>
-          <div className="filters">
-            <label>Alert type<select value={filters.predicted_class} onChange={(e) => set("predicted_class", e.target.value)}><option value="">Any</option>{classes.map((c) => <option key={c} value={c}>{classText(c).title}</option>)}</select></label>
-            <label>Detected by<select value={filters.kind} onChange={(e) => set("kind", e.target.value)}><option value="">Any</option><option value="model">AI model</option><option value="rule">Simple rule</option></select></label>
-            <label>Demo schedule<select value={filters.status} onChange={(e) => set("status", e.target.value)}><option value="">Any</option>{Object.entries(STATUS_PLAIN).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-          </div>
-        </details>
       </Card>
       {alerts === undefined ? <p className="loading-line">Loading alerts…</p> : alerts === null ? <p className="warn">Alerts could not be loaded from the Edge Watch service.</p> : !alerts.length ? (
         <Empty icon="check" title="No alerts match these filters">Edge Watch has not raised an alert that fits this selection.</Empty>
@@ -158,7 +210,8 @@ export function AlertsPage({ state, devices, onOpen, source }: { state: State; d
           <div className="alert-list">{alerts.map((a) => <AlertCard key={a.alert_id} alert={a} devices={devices} onOpen={onOpen} full />)}</div>
         </>
       )}
-      <p className="note dim">An alert means a device's traffic looked unlike normal device traffic for at least two consecutive 5-second checks. “Matches a simulated attack” is checked against the demo's own schedule, recorded separately from the detector.</p>
+      </>}
+      <p className="note dim">Alerts describe observed traffic patterns; they are not proof of a device compromise.</p>
     </div>
   );
 }

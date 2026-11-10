@@ -1,5 +1,6 @@
 """SQLite event store shared by the IDS (writer) and the API (reader). WAL lets them run and restart independently."""
 import json
+import threading
 import sqlite3
 import time
 from pathlib import Path
@@ -43,6 +44,8 @@ class EventStore:
         self.db = connect(path)
         self.write_errors = 0
         self._since_prune = 0
+        # The capture thread and the 1 Hz Monitor share this connection; unserialized use raised SystemError and killed the Monitor.
+        self._lock = threading.RLock()
 
     def envelope(self, event_type, ts, body):
         if event_type not in EVENT_TYPES:
@@ -53,7 +56,7 @@ class EventStore:
     def write(self, event_type, ts, body):
         event = self.envelope(event_type, ts, body)
         try:
-            with self.db:
+            with self._lock, self.db:
                 self.db.execute("INSERT INTO events(event_type, ts, run_id, provenance, body) VALUES (?,?,?,?,?)",
                                 (event_type, ts, self.run_id, self.provenance, json.dumps(event, separators=(",", ":"))))
                 if event_type == "alert":
@@ -63,18 +66,19 @@ class EventStore:
             if self._since_prune >= 5000:
                 self.prune()
             return event
-        except sqlite3.Error:
+        except (sqlite3.Error, SystemError):
             self.write_errors += 1
             return None
 
     def prune(self):
         self._since_prune = 0
-        with self.db:
+        with self._lock, self.db:
             self.db.execute("DELETE FROM events WHERE id <= (SELECT MAX(id) FROM events) - ?", (self.max_events,))
 
     def control(self, key, default=None):
         try:
-            row = self.db.execute("SELECT value FROM control WHERE key=?", (key,)).fetchone()
+            with self._lock:
+                row = self.db.execute("SELECT value FROM control WHERE key=?", (key,)).fetchone()
             return row["value"] if row else default
         except sqlite3.Error:
             self.write_errors += 1
@@ -82,7 +86,7 @@ class EventStore:
 
     def set_control(self, key, value):
         try:
-            with self.db:
+            with self._lock, self.db:
                 self.db.execute("INSERT OR REPLACE INTO control(key, value) VALUES (?,?)", (key, value))
         except sqlite3.Error:
             self.write_errors += 1

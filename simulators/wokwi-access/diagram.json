@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "author": "Edge Watch",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-pir-motion-sensor",
+      "id": "pir",
+      "top": -70,
+      "left": 220,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "door",
+      "top": 100,
+      "left": 220,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-servo",
+      "id": "lock",
+      "top": 220,
+      "left": 220,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [
+      "esp:TX",
+      "$serialMonitor:RX",
+      "",
+      []
+    ],
+    [
+      "esp:RX",
+      "$serialMonitor:TX",
+      "",
+      []
+    ],
+    [
+      "pir:VCC",
+      "esp:5V",
+      "red",
+      []
+    ],
+    [
+      "pir:GND",
+      "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "pir:OUT",
+      "esp:13",
+      "green",
+      []
+    ],
+    [
+      "door:2",
+      "esp:14",
+      "green",
+      []
+    ],
+    [
+      "door:1",
+      "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "lock:V+",
+      "esp:5V",
+      "red",
+      []
+    ],
+    [
+      "lock:GND",
+      "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "lock:PWM",
+      "esp:26",
+      "green",
+      []
+    ]
+  ],
+  "dependencies": {}
+}

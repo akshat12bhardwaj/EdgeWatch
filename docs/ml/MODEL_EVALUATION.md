@@ -1,6 +1,8 @@
 # Model Evaluation
 
-The experimental protocol (splits, repeats, hypotheses) is defined in [EVALUATION_PROTOCOL.md](../experiments/EVALUATION_PROTOCOL.md). This file defines the **metrics and the alert policy**.
+> Historical technical reference. Current operation is documented in ../README.md; old UI, deployment and research plans are not current instructions.
+
+The experimental protocol (splits, repeats, hypotheses) is defined in [EVALUATION_PROTOCOL.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/experiments/EVALUATION_PROTOCOL.md). This file defines the **metrics and the alert policy**.
 
 ## 1. Detection metrics (per window)
 
@@ -34,7 +36,7 @@ We **do not** report plain accuracy as a headline. It is included in the tables 
 
 ## 5. Alert policy
 
-- An alert opens when `score ≥ τ` for **k = 2 consecutive windows** from the same source. τ is chosen on validation (see [MODEL_SELECTION.md](MODEL_SELECTION.md#3-hyperparameter-search)).
+- An alert opens when `score ≥ τ` for **k = 2 consecutive windows** from the same source. τ is chosen on validation (see [MODEL_SELECTION.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/ml/MODEL_SELECTION.md#3-hyperparameter-search)).
 - The alert remains open while windows stay positive. A repeat alert for the same source and class is suppressed for 60 s.
 - Severity:
   - `high`: flood or malformed class with score ≥ 0.9, or a source alerting for > 60 s.

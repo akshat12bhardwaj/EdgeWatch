@@ -138,10 +138,11 @@ class Bridge:
     """
     MAX_EVENTS = 8
 
-    def __init__(self, port, cred, out, clock=time.time, layout=None):
+    def __init__(self, port, cred, out, clock=time.time, layout=None, source=BRIDGE_SOURCE, client_id="edgewatch-telemetry-bridge"):
         self.port, self.cred, self.out, self.clock = port, cred, Path(out), clock
         self.layout = Path(layout) if layout else None
         self.values, self.devices, self.rejected, self.connected = {}, {}, 0, False
+        self.source, self.client_id = source, client_id
 
     def handle(self, topic, payload):
         if topic.startswith(DEVICES_PREFIX):
@@ -180,7 +181,7 @@ class Bridge:
             layout = json.loads(self.layout.read_text()) if self.layout else {}
         except (OSError, ValueError):
             return None
-        return {d["id"] for d in layout.get("devices", []) if d.get("source") == "software" and re.fullmatch(r"[A-Za-z0-9-]{1,12}", d.get("id", ""))}
+        return {d["id"] for d in layout.get("devices", []) if (d.get("source") == "software" or d.get("source") == "wokwi" and d.get("controller") in ("environment", "access", "lighting", "safety")) and re.fullmatch(r"[A-Za-z0-9-]{1,12}", d.get("id", ""))}
 
     def write(self):
         body = {"updated": self.clock(), "port": self.port, "bridge_connected": self.connected, "rejected": self.rejected, "values": self.values, "devices": self.devices}
@@ -190,8 +191,8 @@ class Bridge:
         while not stop.is_set():
             c = None
             try:
-                c = wire.Client(BRIDGE_SOURCE, ("127.0.0.1", self.port), timeout=1)
-                if c.login("edgewatch-telemetry-bridge", *self.cred, keepalive=60):
+                c = wire.Client(self.source, ("127.0.0.1", self.port), timeout=1)
+                if c.login(self.client_id, *self.cred, keepalive=60):
                     raise ConnectionError("bridge login refused")
                 pid = 1
                 for topic in TELEMETRY_TOPICS:

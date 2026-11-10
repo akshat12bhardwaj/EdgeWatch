@@ -187,3 +187,38 @@ def test_per_source_state_is_bounded_under_source_churn(tmp_path):
     pipeline.finish()
     assert len(pipeline.engine.sources) <= 15  # suppression (60 s) plus one window, 5 s apart
     assert len(pipeline.last_seen) <= 125  # 600 s display retention
+
+
+def test_monitor_survives_unexpected_error_and_keeps_reporting(tmp_path):
+    """Regression: one SystemError from a shared-connection write ended the Monitor, so the dashboard showed 'no fresh sample' for hours."""
+    from ids.service import Monitor
+    store = EventStore(tmp_path / "e.sqlite", "r", "live")
+    pipeline = Pipeline(store, None, 5, 1883, pseudonymizer())
+    real, calls = store.write, []
+
+    def flaky(event_type, ts, body):
+        calls.append(event_type)
+        if len(calls) == 1:
+            raise SystemError("error return without exception set")
+        return real(event_type, ts, body)
+    store.write = flaky
+    stop = threading.Event()
+    monitor = Monitor(pipeline, {"tcp_sequence_gaps": 0, "malformed_frames": 0, "streams_peak": 0}, stop=stop, interval=0.05)
+    monitor.start()
+    deadline = time.time() + 5
+    while time.time() < deadline and store.db.execute("SELECT COUNT(*) FROM events WHERE event_type='resource'").fetchone()[0] < 2:
+        time.sleep(0.05)
+    stop.set(); monitor.join(2)
+    assert store.db.execute("SELECT COUNT(*) FROM events WHERE event_type='resource'").fetchone()[0] >= 2
+
+
+def test_store_writes_from_two_threads_are_serialized(tmp_path):
+    store = EventStore(tmp_path / "e.sqlite", "r", "live")
+    def burst(kind):
+        for i in range(300):
+            assert store.write(kind, time.time(), {"i": i}) is not None
+    threads = [threading.Thread(target=burst, args=(k,)) for k in ("window", "resource")]
+    for t in threads: t.start()
+    for t in threads: t.join()
+    assert store.write_errors == 0
+    assert store.db.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 600

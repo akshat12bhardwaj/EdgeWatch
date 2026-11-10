@@ -1,5 +1,7 @@
 # Data Dictionary
 
+> Historical technical reference. Current operation is documented in ../README.md; old UI, deployment and research plans are not current instructions.
+
 This file defines every table the project produces. Feature definitions live in [FEATURE_SPECIFICATION.md](../architecture/FEATURE_SPECIFICATION.md), and event schemas in [DATA_FLOW.md](../architecture/DATA_FLOW.md#3-event-contract). This file covers the **on-disk tables** only.
 
 ## 1. `fields_<capture>.tsv` (tshark export, intermediate)
@@ -26,7 +28,7 @@ One row per packet. Columns are exactly the field list in FEATURE_SPECIFICATION 
 
 `{ "split": "time_blocked", "seed": 0, "train": [episode_ids...], "val": [...], "test": [...], "gap_s": 10 }`
 
-Splits are defined over **episodes and time ranges**, never over individual rows (see [EVALUATION_PROTOCOL.md](../experiments/EVALUATION_PROTOCOL.md#3-splits)).
+Splits are defined over **episodes and time ranges**, never over individual rows (see [EVALUATION_PROTOCOL.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/experiments/EVALUATION_PROTOCOL.md#3-splits)).
 
 ## 4. `results/<exp_id>/metrics.json`
 

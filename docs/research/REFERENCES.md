@@ -1,6 +1,8 @@
 # References
 
-All DOIs were resolved through the Crossref API on 2026-10-20. IDs (`P01`…) are used throughout the documentation. The **Access** column shows how much of each source has been reviewed (see [SEARCH_PROTOCOL.md](SEARCH_PROTOCOL.md#7-access-levels-used-in-the-paper-matrix)).
+> Historical technical reference. Current operation is documented in ../README.md; old UI, deployment and research plans are not current instructions.
+
+All DOIs were resolved through the Crossref API on 2026-10-20. IDs (`P01`…) are used throughout the documentation. The **Access** column shows how much of each source has been reviewed (see [SEARCH_PROTOCOL.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/research/SEARCH_PROTOCOL.md#7-access-levels-used-in-the-paper-matrix)).
 
 ## Standards and software
 

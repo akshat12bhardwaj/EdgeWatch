@@ -13,6 +13,7 @@ import subprocess
 import secrets
 import re
 import sqlite3
+import psutil
 import threading
 import time
 from pathlib import Path
@@ -29,6 +30,7 @@ from ids.store import connect
 from lab.home import send_command, send_light
 
 from .simulation import SimulationController, SimulationRequest, kill_tree
+from .history import install_history
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB_DIST = ROOT / "dashboard" / "web" / "dist"
@@ -43,6 +45,24 @@ def is_loopback(host):
         return host == "localhost" or ipaddress.ip_address(host.strip("[]")).is_loopback
     except ValueError:
         return False
+
+
+def device_summary(placed, reports, controllers, telemetry, now):
+    """The one count every page shows: configured layout devices only (never broker, IDS, attacker or telemetry reader), each online only while it reports."""
+    online = []
+    for d in placed:
+        r, c = reports.get(d.get("id")) or {}, controllers.get(d.get("controller")) if d.get("controller") else None
+        fresh = r.get("status") == "online" and now - (r.get("ts") or 0) <= 30
+        if d.get("controller"):
+            fresh = fresh and bool(c and c.get("mqtt_connected") and c.get("last_message") and now - c["last_message"] <= 30)
+        elif d.get("source") == "wokwi":  # legacy single board: live only while the hub bridge has fresh values from it
+            v = telemetry.get("values", {})
+            fresh = bool(telemetry.get("bridge_connected")) and (v.get("status") or {}).get("value") == "online" and now - max([x.get("ts") or 0 for x in v.values()] or [0]) <= 30
+        if fresh:
+            online.append(d["id"])
+    wokwi = sum(d.get("source") == "wokwi" for d in placed)
+    return {"total": len(placed), "online": len(online), "online_ids": online, "wokwi": wokwi, "software": len(placed) - wokwi,
+            "wokwi_online": sum(d.get("source") == "wokwi" and d["id"] in online for d in placed)}
 
 
 def create_app(db_path=None, token=None, web_dist=WEB_DIST, data_dir=None, mqtt_port=None, schedule=None, allowed_hosts=None):
@@ -109,6 +129,8 @@ def create_app(db_path=None, token=None, web_dist=WEB_DIST, data_dir=None, mqtt_
             raise HTTPException(403, "simulation control is only accepted from this machine")
         require_token(authorization)
 
+    install_history(app, db_path, require_local)
+
     @app.get("/api/health")
     def health():
         rows = query("SELECT MAX(ts) AS t FROM events")
@@ -122,9 +144,10 @@ def create_app(db_path=None, token=None, web_dist=WEB_DIST, data_dir=None, mqtt_
         age = time.time() - last if last else None
         running = bool(resources) and time.time() - resources[-1]["ts"] < STALE_S
         status = "ok" if running and enabled else ("disabled" if not enabled else "idle")
-        return {"status": status, "store": "ok", "ids": "running" if running else "stopped", "ids_enabled": enabled, "last_event_age_s": age, "run": run,
+        total = query("SELECT COUNT(*) AS n FROM alerts") or [{"n": None}]
+        return {"alerts_total": total[0]["n"], "status": status, "store": "ok", "ids": "running" if running else "stopped", "ids_enabled": enabled, "last_event_age_s": age, "run": run,
                 "provenance": run["provenance"] if run else None, "model_loaded": resources[-1].get("model_loaded") if resources else None,
-                "broker_running": resources[-1].get("broker_running") if resources else None}
+                "broker_running": bool(simulation.port and any(c.status == psutil.CONN_LISTEN and c.laddr.port == simulation.port for c in psutil.net_connections(kind="tcp")))}
 
     @app.get("/api/alerts")
     def alerts(limit: int = Query(100, ge=1, le=1000), run_id: Optional[str] = None, source: Optional[str] = None,
@@ -243,9 +266,27 @@ def create_app(db_path=None, token=None, web_dist=WEB_DIST, data_dir=None, mqtt_
         except (OSError, ValueError, KeyError):
             telemetry = {}
         running = simulation.home() is not None
-        return {"configured": True, "running": running, "transport": "serial" if state.get("serial_url") else "gateway", "port": state.get("port"), "monitored_port": simulation.port, "now": time.time(),
+        device_reports = dict(telemetry.get("devices", {})) if running else {}
+        try:
+            observed = json.loads((data_dir / "home" / "controllers-telemetry.json").read_text())
+            if running and observed.get("bridge_connected") and time.time() - observed.get("updated", 0) < 30:
+                placed = json.loads(layout_path.read_text()).get("devices", [])
+                mapped = {d["id"] for d in placed if d.get("source") == "wokwi" and d.get("controller")}
+                device_reports.update({k: v for k, v in observed.get("devices", {}).items() if k in mapped})
+        except (OSError, ValueError, TypeError):
+            pass
+        try:
+            controller_state = json.loads((data_dir / "home" / "controllers-state.json").read_text())
+            controllers = controller_state.get("controllers", {}) if time.time() - controller_state.get("updated", 0) < 10 else {}
+        except (OSError, ValueError, TypeError):
+            controllers = {}
+        try:
+            placed = json.loads(layout_path.read_text()).get("devices", [])
+        except (OSError, ValueError, AttributeError):
+            placed = []
+        return {"summary": device_summary(placed, device_reports, controllers, telemetry if running else {}, time.time()), "configured": True, "running": running, "controllers": controllers, "transport": "serial" if state.get("serial_url") else "gateway", "port": state.get("port"), "monitored_port": simulation.port, "now": time.time(),
                 "bridge_connected": running and bool(telemetry.get("bridge_connected")), "rejected": telemetry.get("rejected", 0), "values": telemetry.get("values", {}),
-                "devices": telemetry.get("devices", {}) if running else {}}
+                "devices": device_reports}
 
     @app.post("/api/home/light", dependencies=[Depends(require_local)])
     def home_light(request: Light):
@@ -271,6 +312,7 @@ def create_app(db_path=None, token=None, web_dist=WEB_DIST, data_dir=None, mqtt_
         x: float = Field(ge=0, le=1100)
         y: float = Field(ge=0, le=640)
         source: Literal["software", "wokwi"] = "software"
+        controller: Optional[Literal["environment", "access", "lighting", "safety"]] = None
 
     class Layout(BaseModel):
         model_config = ConfigDict(extra="forbid")
@@ -280,9 +322,18 @@ def create_app(db_path=None, token=None, web_dist=WEB_DIST, data_dir=None, mqtt_
         @classmethod
         def honest_sources(cls, devices):
             # One Wokwi ESP32 has one DHT22, one PIR and one LED: each can back at most one placed device of its kind.
-            wokwi = [d.type for d in devices if d.source == "wokwi"]
+            wokwi = [d.type for d in devices if d.source == "wokwi" and not d.controller]
             if any(t not in ("climate", "motion", "light") for t in wokwi) or len(wokwi) != len(set(wokwi)):
                 raise ValueError("only one climate sensor, motion sensor and smart light can be Wokwi-backed")
+            roles = {"environment": {"climate", "thermostat"}, "access": {"motion", "door", "lock"}, "lighting": {"light", "plug"}, "safety": {"smoke", "camera"}}
+            slots = []
+            for d in devices:
+                if d.controller:
+                    if d.source != "wokwi" or d.type not in roles[d.controller]:
+                        raise ValueError("device is not supported by this controller")
+                    slots.append((d.controller, d.type))
+            if len(slots) != len(set(slots)):
+                raise ValueError("each controller sensor can back only one placed device")
             if len({d.id for d in devices}) != len(devices):
                 raise ValueError("device ids must be unique")
             return devices
@@ -320,8 +371,12 @@ def create_app(db_path=None, token=None, web_dist=WEB_DIST, data_dir=None, mqtt_
             placed = next((d for d in json.loads(layout_path.read_text())["devices"] if d["id"] == device_id), None)
         except (OSError, ValueError, KeyError):
             placed = None
-        if placed is None or placed.get("source") != "software":
+        if placed is None or (placed.get("source") != "software" and not placed.get("controller")):
             raise HTTPException(404, "no software device with that id in the saved layout")
+        if placed.get("controller"):
+            firmware_fields = {"thermostat": {"target"}, "lock": {"locked"}, "light": {"on"}, "plug": {"on"}, "smoke": {"smoke", "reset", "threshold"}, "camera": {"monitoring", "simulate_motion"}}
+            if len(body) != 1 or not set(body) <= firmware_fields.get(placed["type"], set()) or ("threshold" in body and (type(body["threshold"]) not in (int, float) or not 10 <= body["threshold"] <= 50)):
+                raise HTTPException(422, "adjust this sensor in its Wokwi simulator")
         if not valid_command(placed["type"], body):
             raise HTTPException(422, f"not a valid {placed['type']} command")
         path = simulation.home()

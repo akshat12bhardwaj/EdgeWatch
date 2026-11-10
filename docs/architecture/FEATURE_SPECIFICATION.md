@@ -1,5 +1,7 @@
 # Feature Specification
 
+> Historical technical reference. Current operation is documented in ../README.md; old UI, deployment and research plans are not current instructions.
+
 **Extractor version:** `fx-0.1` (draft). Any change to this table bumps the version and invalidates cached feature tables.
 **Unit of analysis:** a window of `W` seconds (default 5 s, tumbling) × `source_key` (source IP of packets sent **to** the broker port), plus the broker's replies to that source (ADR-04).
 

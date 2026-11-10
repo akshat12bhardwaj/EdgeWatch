@@ -1,14 +1,15 @@
 import "@fontsource-variable/inter";
 import "@fontsource-variable/jetbrains-mono";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { AlertsPage, IncidentDrawer } from "./alerts";
+import { AlertsPage, IncidentDrawer, deviceName } from "./alerts";
 import { AttackSimulator } from "./demo";
 import { TYPES } from "./devices";
 import { SmartHomePage, useLayout } from "./smarthome";
-import { AlertEvent, alertOrder, deviceDirectory, provenanceState } from "./store";
-import { Icon, Pill } from "./ui";
-import { useStream } from "./useStream";
+import { Activity, AlertEvent, classText, deviceDirectory, networkActivity, overview, provenanceState, State } from "./store";
+import { fmt, Icon, useNow } from "./ui";
+import { deviceSummary, Home, useHome } from "./home";
+import { ALERT_HISTORY_CLEARED, Health, useStream } from "./useStream";
 import "./styles.css";
 
 const NAV: [string, string, string][] = [["home", "Smart Home", "home"], ["attack", "Attack Simulator", "attack"], ["alerts", "Alerts", "bell"]];
@@ -26,31 +27,53 @@ function parse() {
 function App() {
   const { state, connected, loading, health, apiDown } = useStream();
   const [route, setRoute] = useState(parse);
+  const [notice, setNotice] = useState<AlertEvent | null>(null);
+  const seenAlerts = useRef<Set<string> | null>(null);
   const [open, setOpen] = useState<AlertEvent | null>(null);
   const layoutState = useLayout(), layout = layoutState.devices;
+  const home = useHome(), now = useNow(2000);
+  const activity = networkActivity(state, health, connected, now);
   const devices = useMemo(() => deviceDirectory(state, layout.map((d) => ({ id: d.id, name: d.name, icon: TYPES[d.type].icon }))), [state.markers, state.order, layout]);
-  const ordered = useMemo(() => alertOrder(state.alerts), [state.alerts]);
   const go = (r: string) => { location.hash = `/${r}`; };
   useEffect(() => { const on = () => { setRoute(parse()); window.scrollTo(0, 0); }; window.addEventListener("hashchange", on); return () => window.removeEventListener("hashchange", on); }, []);
   const alert = open ? state.alerts.find((a) => a.alert_id === open.alert_id) ?? open : null; // live updates extend an open alert
 
   useEffect(() => {
+    const cleared = (event: Event) => {
+      const ids: unknown = (event as CustomEvent).detail;
+      if (!Array.isArray(ids)) return;
+      setOpen((a) => a && ids.includes(a.alert_id) ? null : a);
+      setNotice((a) => a && ids.includes(a.alert_id) ? null : a);
+    };
+    window.addEventListener(ALERT_HISTORY_CLEARED, cleared);
+    return () => window.removeEventListener(ALERT_HISTORY_CLEARED, cleared);
+  }, []);
+
+  useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (["INPUT", "SELECT", "TEXTAREA"].includes((e.target as HTMLElement).tagName)) return;
       if (e.key === "Escape") setOpen(null);
-      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && open && ordered.length) {
+      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && open && state.alerts.length) {
         e.preventDefault();
+        const ordered = [...state.alerts].sort((a, b) => b.start_ns - a.start_ns);
         const at = ordered.findIndex((a) => a.alert_id === open.alert_id);
         setOpen(ordered[at < 0 ? 0 : (at + (e.key === "ArrowDown" ? 1 : -1) + ordered.length) % ordered.length]);
       }
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [ordered, open]);
+  }, [state.alerts, open]);
 
+  useEffect(() => {
+    if (loading) return;
+    const ids = new Set(state.alerts.map(a => a.alert_id));
+    if (seenAlerts.current && connected && state.provenances[0] === "live") {
+      const fresh = state.alerts.find(a => !seenAlerts.current!.has(a.alert_id) && Date.now() / 1000 - a.last_window_ns / 1e9 < 60);
+      if (fresh) setNotice(fresh);
+    }
+    seenAlerts.current = ids;
+  }, [state.alerts, loading, connected]);
   const offline = !connected && !loading;
-  const provenance = state.provenances[0];
-  const live = offline ? <Pill tone="bad">Offline</Pill> : provenance === "live" ? <Pill tone="ok"><span className="live-dot" />Live</Pill> : provenance === "replay" ? <Pill tone="info" title="Recorded traffic played back, not live">Replay</Pill> : provenance === "synthetic" ? <Pill tone="muted">Synthetic</Pill> : <Pill tone="muted">No data yet</Pill>;
   return (
     <div className={`app ${offline ? "frozen" : ""}`}>
       {provenanceState(state) === "error" && <div className="provenance-error" role="alert">Provenance unknown – do not present</div>}
@@ -62,21 +85,36 @@ function App() {
         <nav className="nav" aria-label="Main">
           {NAV.map(([id, label, icon]) => <button key={id} className={`tab ${route.top === id ? "tab-on" : ""}`} aria-current={route.top === id ? "page" : undefined} onClick={() => go(id)}><Icon name={icon} size={18} /><span>{label}</span></button>)}
         </nav>
-        <div className="top-status"><span className="lab-tag" title="All devices and attacks are software on this computer">Simulated lab</span>{live}</div>
+        <div className="top-status"><span className="lab-tag" title="All devices and attacks are software on this computer">Simulated lab</span></div>
       </header>
+      {!loading && <GlobalStatus state={state} health={health} connected={connected} home={home} activity={activity} />}
       {offline && <div className="disconnect" role="status">Connection to Edge Watch lost{state.lastTs ? ` – last update ${new Date(state.lastTs * 1000).toLocaleTimeString([], { hour12: false })}` : ""}. {apiDown ? "The service is unreachable; retrying." : "Reconnecting."}</div>}
       {loading ? (
         <main className="loading"><div className="scan" /><p>Connecting to Edge Watch…</p></main>
       ) : (
         <main key={route.top}>
           {route.top === "attack" ? <AttackSimulator state={state} devices={devices} layout={layoutState} />
-            : route.top === "alerts" ? <AlertsPage state={state} devices={devices} onOpen={setOpen} source={route.params.get("source") ?? undefined} />
-            : <SmartHomePage state={state} health={health} connected={connected} devices={devices} layout={layoutState} onOpen={setOpen} go={go} />}
+            : route.top === "alerts" ? <AlertsPage state={state} devices={devices} onOpen={setOpen} source={route.params.get("source") ?? undefined} focus={route.params.get("alerts") ?? undefined} />
+            : <SmartHomePage state={state} devices={devices} layout={layoutState} onOpen={setOpen} go={go} activity={activity} />}
         </main>
       )}
+      {notice && <aside className="security-toast" role="status" aria-live="polite"><b>{classText(notice.predicted_class).title}</b><p>{deviceName(devices, notice.source_key)} · {notice.severity} severity · {new Date(notice.start_ns / 1e6).toLocaleTimeString()}</p><div className="row-actions"><button className="btn btn-sm" onClick={() => { setOpen(notice); setNotice(null); }}>Inspect alert</button><button className="btn btn-sm" onClick={() => { go("home"); setNotice(null); }}>View home network</button><button className="btn btn-sm" onClick={() => setNotice(null)}>Dismiss</button></div></aside>}
       {alert && <IncidentDrawer alert={alert} state={state} devices={devices} onClose={() => setOpen(null)} />}
     </div>
   );
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+function GlobalStatus({ state, health, connected, home, activity }: { state: State; health: Health | null; connected: boolean; home: Home | null; activity: Activity }) {
+  const stats = overview(state), provenance = provenanceState(state);
+  const monitor = provenance === "error" || health?.status === "no_store" ? "Error" : !connected || !health ? "Offline" : health.ids_enabled === false ? "Paused" : health.ids === "running" ? "Active" : "Offline";
+  const tone = monitor === "Active" ? "ok" : monitor === "Paused" ? "warn" : "bad";
+  const devices = deviceSummary(home);
+  return <section className="global-status" aria-label="Security summary">
+    <div className={`global-stat global-${tone}`}><span className="global-icon"><Icon name="shield" size={18}/></span><span className="global-copy"><b>{monitor}</b><small>Monitoring</small></span></div>
+    <div className="global-stat"><span className="global-icon"><Icon name="home" size={18}/></span><span className="global-copy"><b>{devices.online} <small>of {devices.total}</small></b><small>Devices online</small></span></div>
+    <div className="global-stat"><span className="global-icon"><Icon name="bell" size={18}/></span><span className="global-copy"><b>{health?.alerts_total ?? "—"}</b><small>Security alerts{stats.alerts ? ` · ${stats.alerts} this session` : ""}</small></span></div>
+    <div className={`global-stat${activity.status === "Receiving" || activity.status === "No recent traffic" ? "" : " global-warn"}`}><span className="global-icon"><Icon name="wave" size={18}/></span><span className="global-copy"><b>{activity.rate == null ? "—" : fmt(activity.rate, 1)} <small>{activity.rate == null ? "" : "msg/s · 10 s mean"}</small></b><small>Broker MQTT activity · {activity.status}</small></span></div>
+  </section>;
+}

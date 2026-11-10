@@ -1,6 +1,8 @@
 # Data Flow and Event Contract
 
-Components `C1`–`C14` are defined in [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md#3-components).
+> Historical technical reference. Current operation is documented in ../README.md; old UI, deployment and research plans are not current instructions.
+
+Components `C1`–`C14` are defined in [SYSTEM_ARCHITECTURE.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/architecture/SYSTEM_ARCHITECTURE.md#3-components).
 
 ## 1. Live pipeline (one window)
 
@@ -48,7 +50,7 @@ flowchart LR
   EV --> R[("results/<exp_id>/metrics.json<br/>confusion.csv, model_card.json")]
 ```
 
-Labelling rules and leakage controls: [DATA_QUALITY_PROTOCOL.md](../data/DATA_QUALITY_PROTOCOL.md) and [EVALUATION_PROTOCOL.md](../experiments/EVALUATION_PROTOCOL.md).
+Labelling rules and leakage controls: [DATA_QUALITY_PROTOCOL.md](../data/DATA_QUALITY_PROTOCOL.md) and [EVALUATION_PROTOCOL.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/experiments/EVALUATION_PROTOCOL.md).
 
 ## 3. Event contract
 

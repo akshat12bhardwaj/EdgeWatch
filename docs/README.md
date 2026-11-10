@@ -1,27 +1,55 @@
-# Edge Watch: MQTT Intrusion Detection on an Edge Gateway
+# Documentation
 
-Documentation-first repository for a six-student IoT security research project.
+## Current guides
 
-**Start here:** [MASTER_PROJECT_BLUEPRINT.md](MASTER_PROJECT_BLUEPRINT.md).
+- [Setup](SETUP.md): Windows prerequisites, frozen model, broker, Wokwi and shutdown.
+- [Architecture](ARCHITECTURE.md): devices, bridges, passive IDS, API and storage.
+- [User guide](USER_GUIDE.md): Smart Home, Attack Simulator and Alerts.
+- [Troubleshooting](TROUBLESHOOTING.md): common local-demo failures.
+- [Project overview](../README.md), [contributor rules](../AGENTS.md) and
+  [maintenance handoff](../CODEX_HANDOFF.md).
 
-## Status
+## Preserved technical and historical references
 
-- 2026-10-20: research and design baseline v0.1 created. No code, no installations, no experiments yet.
-- Next gate: **M1**. Complete the full-text reviews ([PHASE_00_RESEARCH.md](implementation/PHASE_00_RESEARCH.md)), freeze the gap and the evaluation protocol, and record approval in [DECISIONS.md](DECISIONS.md).
+These describe earlier research designs or recorded engineering evidence. They
+are retained for attribution, safety, model interpretation and reproducibility;
+their old UI, hardware and experiment instructions are not the current demo.
+No new experiments or training are required to operate this project.
 
-## Conventions
+- [Decisions and unresolved approvals](DECISIONS.md) (preserved unchanged),
+  [architecture decisions](architecture/ARCHITECTURE_DECISIONS.md) and
+  [2026-10-31 audit](DOCUMENTATION_AUDIT.md).
+- [Feature definitions](architecture/FEATURE_SPECIFICATION.md),
+  [event contract](architecture/DATA_FLOW.md) and
+  [alert/model evaluation policy](ml/MODEL_EVALUATION.md), referenced by source.
+- [Data dictionary](data/DATA_DICTIONARY.md),
+  [quality protocol](data/DATA_QUALITY_PROTOCOL.md) and
+  [dataset provenance and redistribution restrictions](data/DATASET_SELECTION.md).
+- [Recorded technical report](reports/FINAL_TECHNICAL_REPORT.md).
+- [Bibliography](research/REFERENCES.md) and [paper matrix](research/PAPER_MATRIX.csv).
 
-- Evidence tags in the research docs: **[R]** reported by the authors · **[I]** our interpretation · **[U]** unverified.
-- Paper IDs `P01`–`P36` and standards `S1`–`S2` are listed in [research/REFERENCES.md](research/REFERENCES.md).
-- **Never** write a number into a results document unless it comes from a file in `results/`.
-- Attack traffic only ever runs inside the isolated lab ([THREAT_MODEL.md §7](architecture/THREAT_MODEL.md#7-lab-safety-boundaries)).
-- Code style: the team uses the Ponytail rules installed in Claude Code. In short: the smallest complete change; a test for every non-trivial piece of logic; known limits marked with `shortcut: <limit>, <when to upgrade>` comments.
+Historical retention tables may mention publishing result files; this publication
+excludes all datasets, captures, models and `results/`. Dataset licensing questions
+remain unresolved; no redistribution rights are assumed. Existing third-party
+notices and references are preserved; no new project license is implied.
 
-## Layout
+## November 2026 consolidation
 
-```
-docs/
-  README.md, MASTER_PROJECT_BLUEPRINT.md, PROJECT_CHARTER.md, IMPLEMENTATION_ROADMAP.md,
-  TEAM_WORK_ALLOCATION.md, DECISIONS.md, RISKS_AND_MITIGATIONS.md, TESTING_STRATEGY.md, DEFINITION_OF_DONE.md
-  research/  architecture/  data/  ml/  experiments/  presentation/  implementation/  reports/
-```
+The cleanup reduced 55 Markdown files to 19. Eleven technical/historical documents
+remain at their original paths alongside the current guides and instructions.
+Forty superseded files were removed only after checking active references and
+verifying a backup of the current documentation, including uncommitted changes.
+
+- **Merged:** three installation guides into Setup/Troubleshooting; the final
+  architecture draft into Architecture; current operating checkpoints and
+  completion notes into the README, User guide and handoff.
+- **Removed from the working tree:** duplicate handovers and execution logs,
+  obsolete project plans/checklists/allocation, eight phase plans, old dashboard
+  proposals/storyboards, empty report templates, and superseded research/model plans.
+- **Archived in Git history:** the removed tracked documents remain available in
+  [the previous publication](https://github.com/akshat12bhardwaj/EdgeWatch/tree/e7c6db8/docs).
+  Retained documents link to immutable historical versions where needed.
+
+No runtime source, tests, firmware, model constraints or protected evidence were
+removed. Source references to the alert-policy document remain valid. Old launcher
+error messages now point to the current setup guide.

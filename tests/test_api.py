@@ -39,7 +39,21 @@ def test_corrupt_store_is_reported_not_raised(tmp_path):
 def test_health_reflects_a_running_ids_and_provenance(store, tmp_path):
     store.write("resource", time.time(), {"model_loaded": True, "broker_running": True, "pkts_per_s": 1, "mqtt_msgs_per_s": 1})
     body = client(store.path, tmp_path).get("/api/health").json()
-    assert body["status"] == "ok" and body["provenance"] == "live" and body["model_loaded"] and body["broker_running"]
+    assert body["status"] == "ok" and body["provenance"] == "live" and body["model_loaded"]
+    assert body["broker_running"] is False  # no configured MQTT port; old resource rows are not live connectivity
+
+
+def test_health_checks_current_mqtt_listener_instead_of_stale_resource(store, tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    import psutil
+    store.write("resource", time.time(), {"model_loaded": True, "broker_running": True})
+    c = client(store.path, tmp_path, mqtt_port=18979)
+    monkeypatch.setattr(psutil, "net_connections", lambda **kwargs: [])
+    body = c.get("/api/health").json()
+    assert body["broker_running"] is False and body["ids"] == "running" and body["provenance"] == "live"
+    listener = SimpleNamespace(status=psutil.CONN_LISTEN, laddr=SimpleNamespace(port=18979))
+    monkeypatch.setattr(psutil, "net_connections", lambda **kwargs: [listener])
+    assert c.get("/api/health").json()["broker_running"] is True
 
 
 def test_health_reports_a_stopped_ids(store, tmp_path):

@@ -1,0 +1,22 @@
+[
+  {
+    "id": "environment",
+    "serial": "rfc2217://localhost:4002",
+    "source_ip": "127.0.3.11"
+  },
+  {
+    "id": "access",
+    "serial": "rfc2217://localhost:4001",
+    "source_ip": "127.0.3.12"
+  },
+  {
+    "id": "lighting",
+    "serial": "rfc2217://localhost:4003",
+    "source_ip": "127.0.3.13"
+  },
+  {
+    "id": "safety",
+    "serial": "rfc2217://localhost:4004",
+    "source_ip": "127.0.3.14"
+  }
+]

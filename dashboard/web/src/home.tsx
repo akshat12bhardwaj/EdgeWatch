@@ -5,7 +5,10 @@ import { json } from "./useStream";
 
 type Reading<T> = { value: T; ts: number } | undefined;
 export type DeviceReport = { state: Record<string, any> | null; status: "online" | "offline" | null; events: { event: string; at: number; result?: string; level?: number }[]; ts: number | null };
-export type Home = { configured: boolean; running?: boolean; transport?: "serial" | "gateway"; devices?: Record<string, DeviceReport>; port?: number; monitored_port?: number | null; now?: number; bridge_connected?: boolean; rejected?: number;
+export type DeviceSummary = { total: number; online: number; online_ids: string[]; wokwi: number; software: number; wokwi_online: number };
+/** The API's single device count (saved layout x live reports); every page shows this, never its own tally. */
+export const deviceSummary = (h: Home | null): DeviceSummary => h?.summary ?? { total: 0, online: 0, online_ids: [], wokwi: 0, software: 0, wokwi_online: 0 };
+export type Home = { summary?: DeviceSummary; controllers?: Record<string, {serial_connected: boolean; mqtt_connected: boolean; firmware_reporting?: boolean; last_error?: string | null; last_message: number | null; source_ip: string}>; configured: boolean; running?: boolean; transport?: "serial" | "gateway"; devices?: Record<string, DeviceReport>; port?: number; monitored_port?: number | null; now?: number; bridge_connected?: boolean; rejected?: number;
   values?: { temperature?: Reading<number>; humidity?: Reading<number>; motion?: Reading<boolean>; light?: Reading<boolean>; status?: Reading<string> } };
 
 const STALE_S = 30; // the firmware reports every 10 s

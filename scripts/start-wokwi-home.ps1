@@ -31,7 +31,7 @@ function Fail($message) { Write-Host "FAILED: $message" -ForegroundColor Red; ex
 function Ok($message) { Write-Host "OK      $message" -ForegroundColor Green }
 function Warn($message) { Write-Host "NOTE    $message" -ForegroundColor Yellow }
 
-if (-not (Test-Path $Python)) { Fail "no .venv. See docs\implementation\WINDOWS_QUICK_START.md section A." }
+if (-not (Test-Path $Python)) { Fail "no .venv. See docs\SETUP.md." }
 if (-not $Gateway) {
     & $Python -c "import serial.rfc2217" 2>$null
     if ($LASTEXITCODE -ne 0) { Fail "the serial bridge needs pyserial: .venv\Scripts\python.exe -m pip install pyserial" }

@@ -1,3 +1,5 @@
+import { controllerHome } from "./devices";
+import { canUseController } from "./devices";
 import { describe, expect, it } from "vitest";
 import { addDevice, canBeWokwi, HUB, linkSources, look, MAX_DEVICES, mixFor, place, PlacedDevice, roomAt, sampleHome, summary, TYPES } from "./devices";
 
@@ -62,4 +64,27 @@ describe("smart home layout", () => {
     const links = linkSources({ "src-a": "bursty@d6", "src-b": "steady", "src-c": "wokwi_serial" });
     expect([...links.entries()]).toEqual([["d6", "src-a"]]);
   });
+});
+
+
+describe("controller-backed layout slots", () => {
+  it("preserves legacy backing and reserves only the matching firmware slot", () => {
+    const home = sampleHome(false);
+    const climate = home.find(d => d.type === "climate")!;
+    climate.source = "wokwi";
+    climate.controller = "environment";
+    expect(canUseController(home, "climate", "environment")).toBe(false);
+    expect(canUseController(home, "climate", "environment", climate.id)).toBe(true);
+    expect(canUseController(home, "climate", "access")).toBe(false);
+    expect(canBeWokwi(home, "climate")).toBe(false); // no legacy single-board duplicate beside a controller slot
+    expect(canBeWokwi(home, "light")).toBe(false);
+    expect(mixFor(home)).not.toContain(`${TYPES.climate.profile}@${climate.id}`);
+  });
+});
+
+it("creates a new four-controller layout with all nine firmware slots", () => {
+  const home = controllerHome();
+  expect(home.length).toBe(9);
+  expect(new Set(home.map(d => d.controller)).size).toBe(4);
+  expect(home.every(d => d.source === "wokwi" && canUseController(home, d.type, d.controller!, d.id))).toBe(true);
 });

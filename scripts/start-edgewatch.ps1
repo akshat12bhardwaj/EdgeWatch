@@ -31,7 +31,7 @@ function Fail($message) { Write-Host "FAILED: $message" -ForegroundColor Red; ex
 function Ok($message) { Write-Host "OK      $message" -ForegroundColor Green }
 
 # Prerequisites. Each failure names its fix.
-if (-not (Test-Path $Python)) { Fail "no .venv. See docs\implementation\WINDOWS_QUICK_START.md section A." }
+if (-not (Test-Path $Python)) { Fail "no .venv. See docs\SETUP.md." }
 if (-not (Test-Path (Join-Path $Repo "dashboard\web\dist\index.html"))) { Fail "dashboard not built. Run: cd dashboard\web; npm ci; npm run build" }
 if (-not (Test-Path (Join-Path $Data "tools\mosquitto\Library\sbin\mosquitto.exe")) -and -not (Get-Command mosquitto -ErrorAction SilentlyContinue)) { Fail "Mosquitto not found under $Data\tools\mosquitto" }
 if (-not (Test-Path "C:\Program Files\Wireshark\dumpcap.exe") -and -not (Get-Command dumpcap -ErrorAction SilentlyContinue)) { Fail "dumpcap not found. Install Wireshark with Npcap." }

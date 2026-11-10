@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "author": "Edge Watch",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht",
+      "top": -60,
+      "left": 210,
+      "attrs": {
+        "temperature": "22.5",
+        "humidity": "45"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "heat",
+      "top": 130,
+      "left": 210,
+      "attrs": {
+        "color": "red",
+        "label": "Heating"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "cool",
+      "top": 180,
+      "left": 210,
+      "attrs": {
+        "color": "blue",
+        "label": "Cooling"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 130,
+      "left": 150,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": 180,
+      "left": 150,
+      "attrs": {
+        "value": "220"
+      }
+    }
+  ],
+  "connections": [
+    [
+      "esp:TX",
+      "$serialMonitor:RX",
+      "",
+      []
+    ],
+    [
+      "esp:RX",
+      "$serialMonitor:TX",
+      "",
+      []
+    ],
+    [
+      "dht:VCC",
+      "esp:3V3",
+      "red",
+      []
+    ],
+    [
+      "dht:GND",
+      "esp:GND.2",
+      "black",
+      []
+    ],
+    [
+      "dht:SDA",
+      "esp:15",
+      "green",
+      []
+    ],
+    [
+      "esp:26",
+      "r1:1",
+      "green",
+      []
+    ],
+    [
+      "r1:2",
+      "heat:A",
+      "green",
+      []
+    ],
+    [
+      "heat:C",
+      "esp:GND.1",
+      "black",
+      []
+    ],
+    [
+      "esp:27",
+      "r2:1",
+      "green",
+      []
+    ],
+    [
+      "r2:2",
+      "cool:A",
+      "green",
+      []
+    ],
+    [
+      "cool:C",
+      "esp:GND.1",
+      "black",
+      []
+    ]
+  ],
+  "dependencies": {}
+}

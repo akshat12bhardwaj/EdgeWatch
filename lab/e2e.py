@@ -195,7 +195,7 @@ def main():
         tabs = browser.js("[...document.querySelectorAll('nav .tab')].map(t => t.textContent)") or []
         browser.js("location.hash = '/advanced/research'")
         time.sleep(1.5)
-        obs["checks"]["three_sections_and_old_links_safe"] = {"tabs": tabs, "pass": tabs == ["Smart Home", "Attack Simulator", "Alerts"] and browser.js("!!document.querySelector('.floor')") and not browser.js("!!document.querySelector('.research')")}
+        obs["checks"]["three_sections_and_old_links_safe"] = {"tabs": tabs, "pass": tabs == ["Smart Home", "Attack Simulator", "Alerts"] and browser.js("!!document.querySelector('.floor-card')") and not browser.js("!!document.querySelector('.research')")}
         browser.shot(shots / "7_old_link.png")
         whole = (browser.js("document.body.innerText") or "").lower()
         obs["checks"]["no_forbidden_words_in_page"] = {"pass": not re.search(r"confirmed|blocked|neutrali[sz]ed", whole)}

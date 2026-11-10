@@ -1,5 +1,7 @@
 # Documentation Audit
 
+> Historical technical reference. Current operation is documented in README.md; old UI, deployment and research plans are not current instructions.
+
 **Audit date:** 2026-10-31. **Audited baseline:** v0.1 (2026-10-20), commit `bd8c85d`.
 **Conducted by:** Claude Code (AI assistant), for team review. Findings are not decisions. No existing document was changed, and no open decision was resolved.
 
@@ -28,49 +30,49 @@ Every file under `docs/` was read in full, starting with the blueprint. Related 
 | # | File | Lines | Purpose |
 |---|---|---:|---|
 | 1 | [README.md](README.md) | 27 | Entry point, status, conventions, layout |
-| 2 | [MASTER_PROJECT_BLUEPRINT.md](MASTER_PROJECT_BLUEPRINT.md) | 97 | Authoritative overview, canonical names, confidence table |
-| 3 | [PROJECT_CHARTER.md](PROJECT_CHARTER.md) | 46 | Problem, goal, scope, success criteria, constraints, sign-off table |
+| 2 | [MASTER_PROJECT_BLUEPRINT.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/MASTER_PROJECT_BLUEPRINT.md) | 97 | Authoritative overview, canonical names, confidence table |
+| 3 | [PROJECT_CHARTER.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/PROJECT_CHARTER.md) | 46 | Problem, goal, scope, success criteria, constraints, sign-off table |
 | 4 | [DECISIONS.md](DECISIONS.md) | 31 | Team decisions (DEC) and open questions (D, Q) |
-| 5 | [DEFINITION_OF_DONE.md](DEFINITION_OF_DONE.md) | 30 | Done criteria for tasks, experiments, panels, project |
-| 6 | [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md) | 32 | M0–M6, acceptance criteria, gate owners, critical path |
-| 7 | [RISKS_AND_MITIGATIONS.md](RISKS_AND_MITIGATIONS.md) | 20 | Risk register R1–R14 |
-| 8 | [TEAM_WORK_ALLOCATION.md](TEAM_WORK_ALLOCATION.md) | 89 | Roles S1–S6, paper assignments, interfaces, reviews |
-| 9 | [TESTING_STRATEGY.md](TESTING_STRATEGY.md) | 49 | Unit, parity, integration, and measurement validation tests |
+| 5 | [DEFINITION_OF_DONE.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/DEFINITION_OF_DONE.md) | 30 | Done criteria for tasks, experiments, panels, project |
+| 6 | [IMPLEMENTATION_ROADMAP.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/IMPLEMENTATION_ROADMAP.md) | 32 | M0–M6, acceptance criteria, gate owners, critical path |
+| 7 | [RISKS_AND_MITIGATIONS.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/RISKS_AND_MITIGATIONS.md) | 20 | Risk register R1–R14 |
+| 8 | [TEAM_WORK_ALLOCATION.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/TEAM_WORK_ALLOCATION.md) | 89 | Roles S1–S6, paper assignments, interfaces, reviews |
+| 9 | [TESTING_STRATEGY.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/TESTING_STRATEGY.md) | 49 | Unit, parity, integration, and measurement validation tests |
 | 10 | [architecture/ARCHITECTURE_DECISIONS.md](architecture/ARCHITECTURE_DECISIONS.md) | 97 | ADR-01 to ADR-12, all Proposed |
 | 11 | [architecture/DATA_FLOW.md](architecture/DATA_FLOW.md) | 115 | Live and offline flows, stage latencies, event contract, storage |
 | 12 | [architecture/FEATURE_SPECIFICATION.md](architecture/FEATURE_SPECIFICATION.md) | 84 | `fx-0.1`: tshark fields, F01–F26, window rules, exclusions |
-| 13 | [architecture/SYSTEM_ARCHITECTURE.md](architecture/SYSTEM_ARCHITECTURE.md) | 113 | Planes, components C1–C14, deployment views, resource budget |
-| 14 | [architecture/THREAT_MODEL.md](architecture/THREAT_MODEL.md) | 79 | Adversary, T1–T7, detectability matrix, lab safety boundaries |
+| 13 | [architecture/SYSTEM_ARCHITECTURE.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/architecture/SYSTEM_ARCHITECTURE.md) | 113 | Planes, components C1–C14, deployment views, resource budget |
+| 14 | [architecture/THREAT_MODEL.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/architecture/THREAT_MODEL.md) | 79 | Adversary, T1–T7, detectability matrix, lab safety boundaries |
 | 15 | [data/DATASET_SELECTION.md](data/DATASET_SELECTION.md) | 71 | Dataset comparison, roles, label harmonisation, blockers |
 | 16 | [data/DATA_DICTIONARY.md](data/DATA_DICTIONARY.md) | 54 | On-disk tables, results files, model card |
 | 17 | [data/DATA_QUALITY_PROTOCOL.md](data/DATA_QUALITY_PROTOCOL.md) | 47 | Checks Q1–Q12, labelling rules, imbalance rules |
-| 18 | [experiments/EVALUATION_PROTOCOL.md](experiments/EVALUATION_PROTOCOL.md) | 104 | Splits, E1–E9, measurement method, threats to validity |
-| 19 | [experiments/EXPERIMENT_TRACKER.md](experiments/EXPERIMENT_TRACKER.md) | 28 | Experiment status table and run log; all planned or deferred |
-| 20 | [implementation/PHASE_00_RESEARCH.md](implementation/PHASE_00_RESEARCH.md) | 25 | Research validation, leads to M1 |
-| 21 | [implementation/PHASE_01_DATA.md](implementation/PHASE_01_DATA.md) | 32 | Data, quality checks, extractor, leads to M2 |
-| 22 | [implementation/PHASE_02_TRAFFIC_LAB.md](implementation/PHASE_02_TRAFFIC_LAB.md) | 35 | Isolated lab and traffic generators, leads to M2 |
-| 23 | [implementation/PHASE_03_BASELINES.md](implementation/PHASE_03_BASELINES.md) | 33 | Offline evaluation, leads to M3 |
-| 24 | [implementation/PHASE_04_EDGE_IDS.md](implementation/PHASE_04_EDGE_IDS.md) | 31 | Gateway service and measurement, leads to M4 |
-| 25 | [implementation/PHASE_05_DASHBOARD.md](implementation/PHASE_05_DASHBOARD.md) | 33 | Edge Watch build, leads to M5 |
-| 26 | [implementation/PHASE_06_INTEGRATION.md](implementation/PHASE_06_INTEGRATION.md) | 25 | Integration, E5, demo run, leads to M5 |
-| 27 | [implementation/PHASE_07_FINAL_VALIDATION.md](implementation/PHASE_07_FINAL_VALIDATION.md) | 24 | Claim audit, reproducibility, report, leads to M6 |
-| 28 | [implementation/SETUP_GUIDE.md](implementation/SETUP_GUIDE.md) | 82 | Environment inventory and setup steps (not executed) |
+| 18 | [experiments/EVALUATION_PROTOCOL.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/experiments/EVALUATION_PROTOCOL.md) | 104 | Splits, E1–E9, measurement method, threats to validity |
+| 19 | [experiments/EXPERIMENT_TRACKER.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/experiments/EXPERIMENT_TRACKER.md) | 28 | Experiment status table and run log; all planned or deferred |
+| 20 | [implementation/PHASE_00_RESEARCH.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/implementation/PHASE_00_RESEARCH.md) | 25 | Research validation, leads to M1 |
+| 21 | [implementation/PHASE_01_DATA.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/implementation/PHASE_01_DATA.md) | 32 | Data, quality checks, extractor, leads to M2 |
+| 22 | [implementation/PHASE_02_TRAFFIC_LAB.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/implementation/PHASE_02_TRAFFIC_LAB.md) | 35 | Isolated lab and traffic generators, leads to M2 |
+| 23 | [implementation/PHASE_03_BASELINES.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/implementation/PHASE_03_BASELINES.md) | 33 | Offline evaluation, leads to M3 |
+| 24 | [implementation/PHASE_04_EDGE_IDS.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/implementation/PHASE_04_EDGE_IDS.md) | 31 | Gateway service and measurement, leads to M4 |
+| 25 | [implementation/PHASE_05_DASHBOARD.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/implementation/PHASE_05_DASHBOARD.md) | 33 | Edge Watch build, leads to M5 |
+| 26 | [implementation/PHASE_06_INTEGRATION.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/implementation/PHASE_06_INTEGRATION.md) | 25 | Integration, E5, demo run, leads to M5 |
+| 27 | [implementation/PHASE_07_FINAL_VALIDATION.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/implementation/PHASE_07_FINAL_VALIDATION.md) | 24 | Claim audit, reproducibility, report, leads to M6 |
+| 28 | [implementation/SETUP_GUIDE.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/implementation/SETUP_GUIDE.md) | 82 | Environment inventory and setup steps (not executed) |
 | 29 | [ml/MODEL_EVALUATION.md](ml/MODEL_EVALUATION.md) | 51 | Metrics, uncertainty, calibration, alert policy, evidence |
-| 30 | [ml/MODEL_SELECTION.md](ml/MODEL_SELECTION.md) | 37 | Models, exclusions, grids, deployed-model rule |
-| 31 | [ml/TRAINING_PIPELINE.md](ml/TRAINING_PIPELINE.md) | 56 | Training steps, rules, suggested layout, library status |
-| 32 | [presentation/DASHBOARD_SPECIFICATION.md](presentation/DASHBOARD_SPECIFICATION.md) | 93 | Global behaviour and panels P1–P8 |
-| 33 | [presentation/DEMO_STORYBOARD.md](presentation/DEMO_STORYBOARD.md) | 69 | Demo modes, preflight, scenes, recovery |
-| 34 | [presentation/PRESENTATION_PLAN.md](presentation/PRESENTATION_PLAN.md) | 50 | Talk narrative, speakers, anticipated questions |
-| 35 | [presentation/VISUALIZATION_RESEARCH_MAPPING.md](presentation/VISUALIZATION_RESEARCH_MAPPING.md) | 25 | UI-to-research traceability, rejected elements |
-| 36 | [presentation/VISUAL_CONCEPT.md](presentation/VISUAL_CONCEPT.md) | 106 | Design system, motion rules, layout, anti-patterns |
-| 37 | [reports/FINAL_REPORT_OUTLINE.md](reports/FINAL_REPORT_OUTLINE.md) | 18 | Report structure |
-| 38 | [reports/LIMITATIONS.md](reports/LIMITATIONS.md) | 25 | Known limitations (living document) |
-| 39 | [reports/RESULTS_TEMPLATE.md](reports/RESULTS_TEMPLATE.md) | 44 | Empty results tables; no results recorded |
-| 40 | [research/LITERATURE_REVIEW.md](research/LITERATURE_REVIEW.md) | 172 | Thematic round-1 synthesis and review template |
+| 30 | [ml/MODEL_SELECTION.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/ml/MODEL_SELECTION.md) | 37 | Models, exclusions, grids, deployed-model rule |
+| 31 | [ml/TRAINING_PIPELINE.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/ml/TRAINING_PIPELINE.md) | 56 | Training steps, rules, suggested layout, library status |
+| 32 | [presentation/DASHBOARD_SPECIFICATION.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/presentation/DASHBOARD_SPECIFICATION.md) | 93 | Global behaviour and panels P1–P8 |
+| 33 | [presentation/DEMO_STORYBOARD.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/presentation/DEMO_STORYBOARD.md) | 69 | Demo modes, preflight, scenes, recovery |
+| 34 | [presentation/PRESENTATION_PLAN.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/presentation/PRESENTATION_PLAN.md) | 50 | Talk narrative, speakers, anticipated questions |
+| 35 | [presentation/VISUALIZATION_RESEARCH_MAPPING.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/presentation/VISUALIZATION_RESEARCH_MAPPING.md) | 25 | UI-to-research traceability, rejected elements |
+| 36 | [presentation/VISUAL_CONCEPT.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/presentation/VISUAL_CONCEPT.md) | 106 | Design system, motion rules, layout, anti-patterns |
+| 37 | [reports/FINAL_REPORT_OUTLINE.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/reports/FINAL_REPORT_OUTLINE.md) | 18 | Report structure |
+| 38 | [reports/LIMITATIONS.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/reports/LIMITATIONS.md) | 25 | Known limitations (living document) |
+| 39 | [reports/RESULTS_TEMPLATE.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/reports/RESULTS_TEMPLATE.md) | 44 | Empty results tables; no results recorded |
+| 40 | [research/LITERATURE_REVIEW.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/research/LITERATURE_REVIEW.md) | 172 | Thematic round-1 synthesis and review template |
 | 41 | [research/PAPER_MATRIX.csv](research/PAPER_MATRIX.csv) | 37 | Per-paper details, access level, reviewer |
 | 42 | [research/REFERENCES.md](research/REFERENCES.md) | 83 | Bibliography P01–P36, S1–S2, with access level |
-| 43 | [research/RESEARCH_GAP_ANALYSIS.md](research/RESEARCH_GAP_ANALYSIS.md) | 92 | G1–G7 verdicts, RQs, hypotheses, novelty risks, title |
-| 44 | [research/SEARCH_PROTOCOL.md](research/SEARCH_PROTOCOL.md) | 102 | Search log, criteria, exclusions, round-2 plan |
+| 43 | [research/RESEARCH_GAP_ANALYSIS.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/research/RESEARCH_GAP_ANALYSIS.md) | 92 | G1–G7 verdicts, RQs, hypotheses, novelty risks, title |
+| 44 | [research/SEARCH_PROTOCOL.md](https://github.com/akshat12bhardwaj/EdgeWatch/blob/e7c6db8791b14aa2280f29fbb71a0fc32c3d42ca/docs/research/SEARCH_PROTOCOL.md) | 102 | Search log, criteria, exclusions, round-2 plan |
 
 ## 4. Contradictions and inconsistent decisions
 

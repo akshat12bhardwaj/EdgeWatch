@@ -70,6 +70,10 @@ secrets.h
 *.sqlite3
 *.db
 *.log
+*.passwd
+.pio/
+*.bin
+*.elf
 
 # Temporary and local files
 *.tmp

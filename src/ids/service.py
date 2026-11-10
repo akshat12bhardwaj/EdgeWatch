@@ -13,6 +13,7 @@ import secrets
 import shutil
 import signal
 import subprocess
+import sys
 import threading
 import time
 import uuid
@@ -273,6 +274,8 @@ class Monitor(threading.Thread):
                                                                           for k in list(self.pipeline.source_state)[-200:]]})
             except psutil.Error:
                 continue
+            except Exception as error:  # one bad tick must not end resource/topology reporting for the rest of the run
+                print(f"monitor: {type(error).__name__}: {error}", file=sys.stderr, flush=True)
 
 
 def run_live(args, store, detector, key):

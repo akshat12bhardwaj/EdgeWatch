@@ -1,5 +1,7 @@
 # Data Quality Protocol
 
+> Historical technical reference. Current operation is documented in ../README.md; old UI, deployment and research plans are not current instructions.
+
 **Why this exists:** dataset construction errors can change benchmark outcomes materially. Engelen et al. reconstructed or relabelled more than 20% of CICIDS2017 traces [R, P31]. Arp et al. list data snooping and spurious correlations among the common pitfalls [R, P30]. The MQTTset paper itself contains count inconsistencies [R, P08]. Run every check below **before** any model is trained on a dataset, and record the results in `results/data_quality/<dataset>.md`.
 
 ## 1. Provenance checks

@@ -2,7 +2,15 @@
 
 export type DeviceType = "light" | "motion" | "climate" | "door" | "lock" | "camera" | "plug" | "thermostat" | "smoke";
 export type Backing = "software" | "wokwi";
-export interface PlacedDevice { id: string; name: string; type: DeviceType; room: RoomId; x: number; y: number; source: Backing }
+export type Controller = "environment" | "access" | "lighting" | "safety";
+export const CONTROLLERS: Record<Controller, { label: string; types: DeviceType[] }> = {
+  environment: { label: "Environment ESP32", types: ["climate", "thermostat"] },
+  access: { label: "Access ESP32", types: ["motion", "door", "lock"] },
+  lighting: { label: "Lighting ESP32", types: ["light", "plug"] },
+  safety: { label: "Safety ESP32", types: ["smoke", "camera"] },
+};
+export const canUseController = (devices: PlacedDevice[], type: DeviceType, controller: Controller, self?: string) => CONTROLLERS[controller].types.includes(type) && !devices.some(d => d.id !== self && d.source === "wokwi" && d.controller === controller && d.type === type);
+export interface PlacedDevice { id: string; name: string; type: DeviceType; room: RoomId; x: number; y: number; source: Backing; controller?: Controller | null }
 
 /**
  * Software devices run in the smart-home hub's device host (lab/devices.py): each one is its own MQTT client with a small,
@@ -70,7 +78,8 @@ export function defaultName(devices: PlacedDevice[], type: DeviceType) {
   while (devices.some((d) => d.name === `${TYPES[type].label} ${n}`)) n++;
   return `${TYPES[type].label} ${n}`;
 }
-export const canBeWokwi = (devices: PlacedDevice[], type: DeviceType, self?: string) => !!TYPES[type].wokwi && !devices.some((d) => d.id !== self && d.source === "wokwi" && d.type === type);
+// The legacy single board is closed once a layout uses the four controllers: its entries then duplicate a controller slot and miss one-shot light/motion reports.
+export const canBeWokwi = (devices: PlacedDevice[], type: DeviceType, self?: string) => !!TYPES[type].wokwi && !devices.some((d) => d.id !== self && d.source === "wokwi" && (!!d.controller || d.type === type));
 
 export function addDevice(devices: PlacedDevice[], type: DeviceType, x: number, y: number, room?: RoomId): PlacedDevice[] {
   if (devices.length >= MAX_DEVICES) return devices;
@@ -131,4 +140,9 @@ export function look(type: DeviceType, s: Record<string, any>): { classes: strin
     type === "smoke" && s.alarm ? "dv-alarm" : "",
   ].filter(Boolean);
   return { classes, icon };
+}
+
+/** A new layout only: callers must never replace an existing arrangement implicitly. */
+export function controllerHome(): PlacedDevice[] {
+  return sampleHome(false).map(d => ({ ...d, source: "wokwi", controller: (Object.keys(CONTROLLERS) as Controller[]).find(c => CONTROLLERS[c].types.includes(d.type))!, name: `${TYPES[d.type].label} (Wokwi)` }));
 }

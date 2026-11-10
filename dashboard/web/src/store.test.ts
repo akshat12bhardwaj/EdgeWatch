@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { alertOrder, apply, classText, demoStages, deviceDirectory, devicesOf, empty, episodeOutcomes, monitorState, overview, percentile, provenanceState } from "./store";
+import { alertOrder, apply, classText, demoStages, deviceDirectory, devicesOf, empty, episodeOutcomes, monitorState, overview, percentile, provenanceState, removeAlertHistory } from "./store";
 
 const event = (event_type: string, extra: object = {}) => ({ event_type, ts: 1, run_id: "r1", provenance: "live", ...extra }) as any;
 const alert = (id: string, severity: string, start = 1) => event("alert", { alert_id: id, severity, start_ns: start });
@@ -31,6 +31,18 @@ describe("provenance honesty", () => {
 });
 
 describe("alerts", () => {
+  it("removes only service-reported alert IDs and preserves live monitoring state", () => {
+    const s = apply(empty, [event("resource"), event("window", { source_key: "sensor" }), alert("old", "low"), alert("active", "high")], 20);
+    const next = removeAlertHistory(s, ["old", "unknown"]);
+    expect(next.alerts.map((a) => a.alert_id)).toEqual(["active"]);
+    expect(s.alerts).toHaveLength(2);
+    expect(next.windows).toBe(s.windows);
+    expect(next.resources).toBe(s.resources);
+    expect(next.nodes).toBe(s.nodes);
+    expect(next.markers).toBe(s.markers);
+    expect(next.lastId).toBe(s.lastId);
+    expect(next.runId).toBe(s.runId);
+  });
   it("an update replaces its alert instead of duplicating", () => {
     const s = apply(empty, [alert("a", "medium"), alert("a", "high")], 1);
     expect(s.alerts).toHaveLength(1);
@@ -134,14 +146,19 @@ describe("customer views stay truthful", () => {
   });
   it("names devices from runner metadata only, and never invents an identity", () => {
     const s = apply(empty, [
-      event("run_marker", { marker: "scenario_devices", devices: { a: "motion", b: "motion", c: "door" } }),
+      event("run_marker", { marker: "scenario_devices", devices: { a: "motion", b: "motion", c: "door", x: "light" } }),
       event("run_marker", { marker: "scheduled_attack", source_key: "x", family: "bruteforce", start_ns: 1, end_ns: 2 }),
       event("window", { source_key: "zz-9f3e" }),
     ], 1);
     const d = deviceDirectory(s);
     expect([d.get("a")!.name, d.get("b")!.name, d.get("c")!.name]).toEqual(["Motion sensor 1", "Motion sensor 2", "Door sensor 1"]);
-    expect(d.get("x")!.kind).toBe("attacker");
-    expect(d.get("zz-9f3e")).toMatchObject({ kind: "unknown", name: "Unknown device 9f3e" });
+    expect(d.get("x")).toMatchObject({ kind: "attacker", name: "Lab attacker" });
+    expect(d.get("zz-9f3e")).toMatchObject({ kind: "unknown", name: "Unidentified source 9f3e" });
+  });
+  it("disambiguates repeated single-device profiles by source", () => {
+    const s = apply(empty, [event("run_marker", { marker: "scenario_devices", devices: { a: "wokwi_esp32", b: "wokwi_esp32" } })], 1);
+    const d = deviceDirectory(s);
+    expect([d.get("a")!.name, d.get("b")!.name]).toEqual(["Wokwi ESP32 smart home 1", "Wokwi ESP32 smart home 2"]);
   });
   it("unknown classes fall back to their own name", () => {
     expect(classText("flood").title).toBe("Unusually high message traffic");
